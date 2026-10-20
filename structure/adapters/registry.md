@@ -30,6 +30,18 @@ Some adapters share another adapter's routed-tool semantics while retaining inde
   The inherited contract includes Meta Muse's host-gated 64-character tool-name alias when the
   constructed send URL is `api.meta.ai` (`src/responses/muse-tool-name-alias.ts`).
 - `mimo-free` inherits the `openai-chat` contract.
+- `bedrock` inherits the `anthropic` contract. Amazon Bedrock serves the Anthropic Messages wire,
+  so `src/adapters/bedrock.ts` wraps `createAnthropicAdapter` for the body, the per-family thinking
+  and sampling rules and the SSE event parser, and owns only what Bedrock changes: the regional
+  `/model/{id}/invoke-with-response-stream` URL from `src/providers/bedrock-destination.ts`
+  (canonical `claude-*` ids map onto the region's inference-profile prefix; a full Bedrock id or
+  ARN passes through, and the canonical family is recovered from it so the contract rules still
+  apply), the body deltas (`anthropic_version`, `anthropic_beta` array, no `model`/`stream`/`speed`,
+  no cache `ttl`), bearer API-key auth, and the `application/vnd.amazon.eventstream` body, which
+  is re-encoded as SSE and handed to the anthropic parser so one terminal event rule holds.
+  Smithy exception frames become the HTTP status the same failure carries pre-stream
+  (`throttlingException` -> 429), which is what combo failover and key rotation branch on.
+  Coverage: `tests/adapters/bedrock-adapter.test.ts`, `tests/providers/bedrock-provider.test.ts`.
 - `claude-cli` inherits the `codebuddy` contract. Claude Code speaks the same stream-json
   protocol this repository already parses for CodeBuddy and Qoder, so the wire is inherited and the
   family module (`src/adapters/claude-cli/`) supplies only its own arguments and child environment.

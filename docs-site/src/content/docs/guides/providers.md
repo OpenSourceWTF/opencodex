@@ -657,7 +657,7 @@ The account list marks Kiro accounts excluded from automatic selection with a re
 
 ## 3. API-key catalog
 
-opencodex ships 104 built-in presets: 84 key-based, 16 OAuth, three local, and one default
+opencodex ships 105 built-in presets: 85 key-based, 16 OAuth, three local, and one default
 ChatGPT-forward preset. The dashboard's **Add provider** picker opens a key provider's dashboard,
 validates the key, and stores it; validation is provider-specific. Notable entries:
 
@@ -701,6 +701,7 @@ region-pinned EU routes, is at [opper.ai/models](https://opper.ai/models). Opper
 | --- | --- |
 | **OpenAI (API key)** | `https://api.openai.com/v1` |
 | **Anthropic (API key)** | `https://api.anthropic.com` |
+| **Amazon Bedrock (Claude)** | `https://bedrock-runtime.<region>.amazonaws.com` |
 | **OpenRouter** | `https://openrouter.ai/api/v1` |
 | **Cline** | `https://api.cline.bot/api/v1` |
 | **ClinePass** | `https://api.cline.bot/api/v1` |
@@ -1417,6 +1418,52 @@ This preset still does not perform live model discovery. An existing custom prov
 with the same name keeps its configured destination and metadata.
 CLI key login also skips the undocumented `/models` probe and reports validation as
 unknown; successful key authentication is established by a subsequent inference request.
+
+### Amazon Bedrock (Claude)
+
+`amazon-bedrock` runs Claude on your AWS account, pay-as-you-go, through Bedrock's Anthropic
+Messages route. It is the natural last-resort target behind a Claude subscription pool: when every
+pooled account is cooled, a failover combo hops to Bedrock and the request keeps its Claude model.
+
+1. In the AWS console open **Amazon Bedrock > API keys** and create a long-term key (make sure the
+   Claude models you want are enabled for the account in that region).
+2. `ocx provider add amazon-bedrock` (or pick **Amazon Bedrock (Claude)** in the dashboard's Add
+   provider picker) and paste the key. Key validation reports *unknown*: the runtime host has no
+   `/models` endpoint to probe.
+3. Set `region` to your Bedrock source region. Canonical Claude ids (`claude-opus-5-5`,
+   `claude-sonnet-5-5`, ...) are mapped onto that region's cross-region inference profile
+   (`us.anthropic.claude-opus-5-5`, `eu.anthropic...`). To pin another profile, use the full
+   Bedrock id as the model, for example `global.anthropic.claude-sonnet-5-5`.
+
+```json
+{
+  "providers": {
+    "amazon-bedrock": {
+      "adapter": "bedrock",
+      "baseUrl": "https://bedrock-runtime.us-east-1.amazonaws.com",
+      "authMode": "key",
+      "apiKey": "${AWS_BEARER_TOKEN_BEDROCK}",
+      "region": "us-east-1"
+    }
+  },
+  "combos": {
+    "opus": {
+      "alias": "claude-opus-5-5",
+      "strategy": "failover",
+      "allowMeteredTargets": true,
+      "targets": [
+        { "provider": "anthropic", "model": "claude-opus-5-5" },
+        { "provider": "amazon-bedrock", "model": "claude-opus-5-5", "metered": true, "lastResort": true }
+      ]
+    }
+  }
+}
+```
+
+Auth is the Bedrock API key as a bearer token; AWS SigV4 and `~/.aws` profiles are not supported.
+Bedrock has no fast mode, no service tiers and no Anthropic server-side web search; prompt caching
+uses the five-minute breakpoint. Pricing and context windows come from the `amazon-bedrock`
+metadata bundle. See [Combos](/guides/combos/) for the failover rules and the metered-target consent.
 
 ### Multiple API keys
 

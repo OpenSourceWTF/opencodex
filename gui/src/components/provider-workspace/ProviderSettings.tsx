@@ -27,7 +27,7 @@ import { ProviderProtocolPanel } from "./ProviderProtocolPanel";
 import { ProviderKeyPacing, type KeyPacingDraft, type KeyPacingStatus } from "./ProviderKeyPacing";
 import type { WorkspaceItem, ProviderUpdatePatch, ProviderUpdateResult } from "./types";
 
-const ADAPTERS = ["openai-responses", "openai-chat", "anthropic", "google", "azure-openai", "cursor"] as const;
+const ADAPTERS = ["openai-responses", "openai-chat", "anthropic", "bedrock", "google", "azure-openai", "cursor"] as const;
 const EMPTY_MODELS: string[] = [];
 
 type ChoicesStatus = "idle" | "loading" | "ready" | "error";

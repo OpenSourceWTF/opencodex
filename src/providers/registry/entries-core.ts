@@ -26,6 +26,7 @@ import { isCanonicalOpenRouterTarget } from "../openrouter-routing";
 import type { ProviderRegistryEntry } from "./types";
 import type { AnthropicInstanceId } from "../anthropic-instance-id";
 import { ANTHROPIC_FAST_MODE_BETA } from "../anthropic-fast";
+import { BEDROCK_DEFAULT_REGION, BEDROCK_DEFAULT_RUNTIME_BASE_URL } from "../bedrock-destination";
 import {
   ANTHROPIC_MODELS,
   ANTHROPIC_MODEL_CONTEXT_WINDOWS,
@@ -578,6 +579,34 @@ export const PROVIDER_REGISTRY_CORE: readonly ProviderRegistryEntry[] = [
     modelSupportsServiceTier: { ...ANTHROPIC_FAST_MODELS },
     fastTierDescription: ANTHROPIC_FAST_TIER_DESCRIPTION,
     fastOptIn: true,
+  },
+  {
+    // Claude on AWS, pay-as-you-go: the canonical fallback target when a Claude subscription pool
+    // is exhausted. Same Messages wire and model roster as the Anthropic entries; the `bedrock`
+    // adapter maps canonical ids onto the region's inference profile (`us.anthropic.claude-...`)
+    // and a full Bedrock id or ARN is accepted verbatim. Auth is a Bedrock API key sent as a
+    // bearer token (SigV4 is not implemented). No `/models` endpoint exists on the runtime host,
+    // so the roster is static and key validation is reported as unknown rather than probed.
+    id: "amazon-bedrock",
+    label: "Amazon Bedrock (Claude)",
+    adapter: "bedrock",
+    baseUrl: BEDROCK_DEFAULT_RUNTIME_BASE_URL,
+    allowBaseUrlOverride: true,
+    authKind: "key",
+    apiKeyValidation: "unknown",
+    dashboardUrl: "https://console.aws.amazon.com/bedrock/home#/api-keys",
+    jawcodeBundle: "amazon-bedrock",
+    extraMetadataAliases: ["bedrock", "aws-bedrock"],
+    note: "Claude on AWS, billed to your AWS account — set `region`, paste a Bedrock API key",
+    region: BEDROCK_DEFAULT_REGION,
+    models: [...ANTHROPIC_MODELS],
+    liveModels: false,
+    modelContextWindows: { ...ANTHROPIC_MODEL_CONTEXT_WINDOWS },
+    modelInputModalities: { ...ANTHROPIC_MODEL_INPUT_MODALITIES },
+    modelReasoningEfforts: { ...ANTHROPIC_MODEL_REASONING_EFFORTS },
+    defaultMaxOutputTokens: ANTHROPIC_DEFAULT_MAX_OUTPUT_TOKENS,
+    modelMaxOutputTokens: { ...ANTHROPIC_MODEL_MAX_OUTPUT_TOKENS },
+    defaultModel: "claude-sonnet-5-5",
   },
   {
     id: "kimi",

@@ -1121,6 +1121,13 @@ export interface OcxProviderConfig {
   /** Vertex AI location, e.g. "us-central1" or "global". API-key project endpoints default to "global"; ADC falls back to GOOGLE_CLOUD_LOCATION env. */
   location?: string;
   /**
+   * Amazon Bedrock source region for the `bedrock` adapter, e.g. "us-east-1". A canonical
+   * `bedrock-runtime.<region>.amazonaws.com` baseUrl is rebuilt for this region, and canonical
+   * `claude-*` ids are mapped onto its cross-region inference profile prefix. Falls back to the
+   * region embedded in the `baseUrl` host, then `AWS_REGION` / `AWS_DEFAULT_REGION`, then `us-east-1`.
+   */
+  region?: string;
+  /**
    * Cursor adapter only: MCP servers opencodex starts/connects and exposes to the Cursor agent
    * as callable tools. Each entry is spawned (stdio `command`) or connected (`url`) lazily per
    * stream; their tools are advertised to the Cursor server and executed against the live server.

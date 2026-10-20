@@ -365,6 +365,44 @@ MiMo model Command Code serves.
   and no tool call. It performs at most one internal continuation; normal answers, clarification
   questions, tool-using turns, and transport-incomplete responses are not auto-retried.
 
+## `bedrock`
+
+**Targets:** Anthropic Claude models on Amazon Bedrock through the Messages wire
+(`https://bedrock-runtime.<region>.amazonaws.com/model/<modelId>/invoke-with-response-stream`, or
+`/invoke` for a non-streaming request).
+**Auth:** an Amazon Bedrock API key as `Authorization: Bearer`. AWS SigV4 signing and the
+`~/.aws` credential chain are not implemented; create a key under **Amazon Bedrock > API keys**
+in the AWS console, or reference the `AWS_BEARER_TOKEN_BEDROCK` variable with `${AWS_BEARER_TOKEN_BEDROCK}`.
+
+- Wraps the `anthropic` adapter: the Messages body, the per-family thinking and effort rules,
+  tool lowering, image normalization and the event parser are the same code, so a Claude model
+  behaves as it does on `api.anthropic.com` apart from the Bedrock-specific items below.
+- Resolves the region from `region`, else from the `baseUrl` host, else `AWS_REGION` /
+  `AWS_DEFAULT_REGION`, else `us-east-1`. A canonical runtime host follows that region; a custom
+  `baseUrl` (gateway or VPC endpoint) is used verbatim.
+- Maps a canonical id such as `claude-opus-5-5` onto the region's cross-region inference profile
+  (`us.anthropic.claude-opus-5-5` from a US region, `eu.` from Europe, `apac.`/`jp.`/`au.` from
+  Asia-Pacific, `us-gov.` from GovCloud; an unknown geography sends the in-region
+  `anthropic.claude-opus-5-5`). A full Bedrock model id, inference-profile id
+  (`global.anthropic.claude-sonnet-5-5`) or ARN is sent verbatim, path-encoded.
+- Body: removes `model` and `stream` (the operation path selects streaming), adds
+  `anthropic_version: "bedrock-2023-05-31"`, and moves any `anthropic-beta` header, including an
+  operator `headers["anthropic-beta"]`, into the `anthropic_beta` array. Anthropic-only fields are
+  dropped: fast-mode `speed`, `service_tier`, top-level automatic `cache_control`, and the 1h cache
+  `ttl` (explicit `cache_control: {"type": "ephemeral"}` breakpoints are kept; Bedrock caches them
+  for five minutes).
+- Decodes `application/vnd.amazon.eventstream`: each `chunk` frame carries one base64 Anthropic
+  event, which is re-emitted as SSE to the shared Messages parser. A Smithy exception frame ends the
+  turn with the status the same failure carries before a stream opens (`throttlingException` is a
+  429, `validationException` a 400, `accessDeniedException` a 403, `serviceUnavailableException` a
+  503), so combo failover and key cooldowns treat a mid-stream throttle like a pre-stream one.
+  A gateway that already answers with `text/event-stream` is parsed as-is.
+- No fast lane, no service tiers, and no Anthropic server tools (web search / web fetch run through
+  the proxy's sidecars instead). The model roster is static (`liveModels: false`) because the
+  runtime host has no `/models` endpoint, and key validation reports `unknown` rather than probing.
+- Reserved request headers (`authorization`, `x-api-key`, `anthropic-version`, `host`,
+  `x-amz-security-token`, `x-amz-date`) cannot be set through `headers`.
+
 ## `google`
 
 **Targets:** Google **Gemini**, **Vertex AI**, and Antigravity **Cloud Code Assist**. AI Studio uses

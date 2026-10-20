@@ -371,6 +371,8 @@ export interface ProviderRegistryEntry {
   googleMode?: "ai-studio" | "vertex" | "cloud-code-assist";
   project?: string;
   location?: string;
+  /** Amazon Bedrock source region; the canonical runtime host follows it (`bedrock` adapter). */
+  region?: string;
 }
 
 export type ProviderConfigSeed = Pick<
@@ -383,5 +385,5 @@ export type ProviderConfigSeed = Pick<
   | "reasoningEfforts" | "modelReasoningEfforts" | "modelDefaultReasoningEfforts" | "reasoningEffortMap" | "modelReasoningEffortMap" | "reasoningWireFormat"
   | "noVisionModels" | "noReasoningModels" | "noTemperatureModels" | "noTopPModels" | "noStopModels" | "noPenaltyModels"
   | "autoToolChoiceOnlyModels" | "preserveReasoningContentModels" | "requiresReasoningPlaceholderModels" | "reasoningSplitModels" | "inlineThinkTagModels" | "reasoningDetailsModels" | "thinkingToggleModels" | "thinkingBudgetModels" | "escapeBuiltinToolNames" | "openaiChatEofTolerance" | "showThinkingSummary"
-  | "googleMode" | "project" | "location" | "headers"
+  | "googleMode" | "project" | "location" | "region" | "headers"
 >;

@@ -138,6 +138,7 @@ export const REGISTRY_FIELD_MODEL_ID_ROLES = {
   googleMode: NONE,
   project: NONE,
   location: NONE,
+  region: NONE,
 } satisfies Record<keyof ProviderRegistryEntry, RegistryFieldModelIdRole>;
 
 /**

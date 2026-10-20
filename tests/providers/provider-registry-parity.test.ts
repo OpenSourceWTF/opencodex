@@ -40,7 +40,7 @@ function nativeTemplate(): Record<string, unknown> {
 }
 
 const EXPECTED_KEY_PROVIDER_IDS = [
-  "anthropic-apikey", "openai-apikey", "meta-model", "umans", "opencode-go", "neuralwatt", "openrouter", "cline-pass", "cline", "orcarouter", "packycode", "bizrouter", "groq", "google", "google-vertex", "azure-openai",
+  "anthropic-apikey", "amazon-bedrock", "openai-apikey", "meta-model", "umans", "opencode-go", "neuralwatt", "openrouter", "cline-pass", "cline", "orcarouter", "packycode", "bizrouter", "groq", "google", "google-vertex", "azure-openai",
   "deepseek", "cerebras", "chutes", "deepinfra", "hyperbolic", "nscale", "vultr", "jev", "baseten", "commandcode", "sambanova", "nebius", "crusoe", "digitalocean", "scaleway", "featherless", "novita", "together", "fireworks", "firepass", "moonshot",
   "huggingface", "nvidia", "venice", "zai", "zhipu-bigmodel", "zhipu-bigmodel-coding", "zhipu-bigmodel-responses", "nanogpt", "synthetic", "siliconflow", "qwen-cloud", "tencent-coding-plan",
   "volcengine", "volcengine-coding-plan", "volcengine-agent-plan", "qianfan", "alibaba", "alibaba-token-plan", "alibaba-token-plan-intl", "parallel", "zenmux", "litellm", "ollama-cloud", "mistral",
@@ -1176,7 +1176,7 @@ describe("provider registry parity", () => {
     // Registry order. OAuth entries, including both Anthropic instances, are gated by
     // providerSecureTransportConfigError; the rest are key/local providers that never send a
     // subscription bearer to the override.
-    expect(optedIn.map(entry => entry.id)).toEqual(["orcarouter-oauth", "anthropic", "anthropic2", "google-antigravity", "ollama", "vllm", "lm-studio", "moonshot", "qwen-cloud", "alibaba", "alibaba-token-plan-intl", "litellm"]);
+    expect(optedIn.map(entry => entry.id)).toEqual(["orcarouter-oauth", "anthropic", "anthropic2", "amazon-bedrock", "google-antigravity", "ollama", "vllm", "lm-studio", "moonshot", "qwen-cloud", "alibaba", "alibaba-token-plan-intl", "litellm"]);
     for (const entry of optedIn) {
       expect(providerConfigSeed(entry)).not.toHaveProperty("allowBaseUrlOverride");
     }
@@ -1470,6 +1470,9 @@ describe("provider registry parity", () => {
       anthropic2: "anthropic",
       "anthropic-apikey": "anthropic",
       "anthropic-key": "anthropic",
+      "amazon-bedrock": "amazon-bedrock",
+      bedrock: "amazon-bedrock",
+      "aws-bedrock": "amazon-bedrock",
       kimi: "moonshot",
       "kimi-responses": "moonshot",
       "opencode-go": "opencode-go",

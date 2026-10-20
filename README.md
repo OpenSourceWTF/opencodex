@@ -367,7 +367,7 @@ A JEV Combo can instead ask a self-hosted decision model, such as Ollama's keyle
 ## Providers & adapters
 
 <!-- sponsors:main-first-mention -->
-OpenAI (ChatGPT login or API key), Anthropic, Google Gemini, xAI, Kimi, Azure OpenAI, Ollama
+OpenAI (ChatGPT login or API key), Anthropic, Amazon Bedrock (Claude), Google Gemini, xAI, Kimi, Azure OpenAI, Ollama
 (local + Cloud), Cursor (experimental), and every OpenAI-compatible endpoint — plus DeepSeek,
 Groq, OpenRouter, OpenGateway, Together, Fireworks, Cerebras, Mistral, Hugging Face, NVIDIA NIM, MiniMax,
 Qwen Cloud, Qoder Global and CN (official PAT + CLI), SiliconFlow, and more. Full list: `ocx init` or the

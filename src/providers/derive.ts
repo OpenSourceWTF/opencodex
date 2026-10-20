@@ -305,6 +305,7 @@ export function providerConfigSeed(entry: ProviderRegistryEntry): OcxProviderCon
     ...(entry.googleMode ? { googleMode: entry.googleMode } : {}),
     ...(entry.project ? { project: entry.project } : {}),
     ...(entry.location ? { location: entry.location } : {}),
+    ...(entry.region ? { region: entry.region } : {}),
   };
 }
 
@@ -358,6 +359,7 @@ export function deriveKeyLoginMap(): Record<string, DerivedKeyLoginProvider> {
       ...(entry.googleMode ? { googleMode: entry.googleMode } : {}),
       ...(entry.project ? { project: entry.project } : {}),
       ...(entry.location ? { location: entry.location } : {}),
+      ...(entry.region ? { region: entry.region } : {}),
     };
   }
   return out;

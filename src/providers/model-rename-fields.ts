@@ -149,6 +149,7 @@ export const PROVIDER_MODEL_RENAME_ROLES = {
   googleToolSchemaPolicy: "none",
   project: "none",
   location: "none",
+  region: "none",
   mcpServers: "none",
   desktopExecutor: "none",
   unsafeAllowNativeLocalExec: "none",

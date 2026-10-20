@@ -9,7 +9,7 @@ import { canConfigureResponsesReasoningReplay } from "../responses-reasoning-rep
 import { ResponsesReasoningReplayControl } from "./responses-reasoning-replay-control";
 import { isSubscriptionCliProvider, SUBSCRIPTION_CLI_API_KEY_ALTERNATIVE } from "../provider-workspace/subscription-cli";
 
-const FORM_ADAPTERS = ["openai-responses", "openai-chat", "anthropic", "google", "azure-openai", "cursor"];
+const FORM_ADAPTERS = ["openai-responses", "openai-chat", "anthropic", "bedrock", "google", "azure-openai", "cursor"];
 
 /** The preset's own adapter stays selectable; otherwise the select shows the first option instead. */
 function adapterOptions(current: string): string[] {

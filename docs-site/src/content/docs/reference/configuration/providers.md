@@ -290,7 +290,7 @@ Providers can expose a built-in shorthand, such as `agy` for `google-antigravity
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `adapter` | `string` | One of `openai-chat`, `openai-responses`, `anthropic`, `claude-cli`, `google`, `kiro`, `cursor`, `ollama-native`, `azure-openai` (or alias `azure`), `codebuddy`, `qoder`. |
+| `adapter` | `string` | One of `openai-chat`, `openai-responses`, `anthropic`, `bedrock`, `claude-cli`, `google`, `kiro`, `cursor`, `ollama-native`, `azure-openai` (or alias `azure`), `codebuddy`, `qoder`. |
 | `baseUrl` | `string` | Upstream API base URL. Most built-in fixed endpoints ignore a mismatch; collision-safe key presets preserve an older same-named custom destination. |
 | `proxy?` | `string \| null` | Per-provider egress route. Omit it to inherit the global proxy decision; use `"direct"` or `null` to force direct egress; or provide an absolute `http://`, `https://`, `socks5://`, or `socks5h://` proxy URL. An empty string is rejected. |
 | `noProxy?` | `string \| string[]` | Destinations this provider reaches directly, using `NO_PROXY` host-pattern syntax. A match bypasses both this provider's own proxy and an inherited global proxy. |
@@ -400,6 +400,7 @@ Providers can expose a built-in shorthand, such as `agy` for `google-antigravity
 | — | — | If Antigravity quota summary returns 403 for a valid OAuth account, OpenCodex retries that endpoint once with the legacy `antigravity/1.0` User-Agent and the same token and project. A 401 is not retried. Inference and model discovery retain the IDE User-Agent. |
 | — | — | Antigravity quota shows Gemini 4 Argon as separate `Argon` / `Argon (Weekly)` windows next to Gem and Cla. They are display-only: account ranking, quota exhaustion, reset ordering and reset notifications keep using the Gemini and Claude windows, and Argon requests are still judged by the Gemini window. |
 | `location?` | `string` | Vertex location. API-key project endpoints default to `global` and ignore `GOOGLE_CLOUD_LOCATION`; ADC requires this field or the `GOOGLE_CLOUD_LOCATION` fallback. Gemini 4 Argon supports `global`, `us`, and `eu`. |
+| `region?` | `string` | Amazon Bedrock only (`bedrock` adapter): the AWS source region, for example `us-east-1`. A canonical `bedrock-runtime.<region>.amazonaws.com` `baseUrl` follows this field, and canonical `claude-*` model ids are mapped onto the region's cross-region inference profile (`us.`, `eu.`, `apac.`, `jp.`, `au.`, `us-gov.`). Omitted: the region in the `baseUrl` host, then `AWS_REGION` / `AWS_DEFAULT_REGION`, then `us-east-1`. Must be one lowercase region label. |
 | `mcpServers?` | `Record<string, CursorMcpServerConfig>` | Cursor only: stdio or Streamable HTTP MCP servers. |
 | `desktopExecutor?` | `DesktopExecutorConfig` | Cursor only: external computer-use and record-screen commands. |
 | `unsafeAllowNativeLocalExec?` | `boolean` | Cursor legacy boolean, equivalent to `nativeLocalExec: "on"` only when the newer field is unset. |

@@ -286,6 +286,7 @@ export function routedProviderConfig(providerName: string, provider: OcxProvider
     ...(provider.googleMode === undefined && registryEntry.googleMode !== undefined ? { googleMode: registryEntry.googleMode } : {}),
     ...(provider.project === undefined && registryEntry.project !== undefined ? { project: registryEntry.project } : {}),
     ...(provider.location === undefined && registryEntry.location !== undefined ? { location: registryEntry.location } : {}),
+    ...(provider.region === undefined && registryEntry.region !== undefined ? { region: registryEntry.region } : {}),
     ...(provider.contextWindow === undefined && registryEntry.contextWindow !== undefined ? { contextWindow: registryEntry.contextWindow } : {}),
     ...((provider.reasoningEfforts === undefined || hasLegacyClinePassReasoningEfforts(providerName, provider))
       && registryEntry.reasoningEfforts !== undefined
