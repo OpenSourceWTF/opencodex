@@ -584,20 +584,23 @@ export const PROVIDER_REGISTRY_CORE: readonly ProviderRegistryEntry[] = [
     // Claude on AWS, pay-as-you-go: the canonical fallback target when a Claude subscription pool
     // is exhausted. Same Messages wire and model roster as the Anthropic entries; the `bedrock`
     // adapter maps canonical ids onto the region's inference profile (`us.anthropic.claude-...`)
-    // and a full Bedrock id or ARN is accepted verbatim. Auth is a Bedrock API key sent as a
-    // bearer token (SigV4 is not implemented). No `/models` endpoint exists on the runtime host,
-    // so the roster is static and key validation is reported as unknown rather than probed.
+    // and a full Bedrock id or ARN is accepted verbatim. Auth is a Bedrock API key as a bearer
+    // token when one is pasted; with no key the request is SigV4-signed with the AWS profile's
+    // credentials (static keys or an `aws sso login` session), hence `keyOptional`. No `/models`
+    // endpoint exists on the runtime host, so the roster is static and key validation is
+    // reported as unknown rather than probed.
     id: "amazon-bedrock",
     label: "Amazon Bedrock (Claude)",
     adapter: "bedrock",
     baseUrl: BEDROCK_DEFAULT_RUNTIME_BASE_URL,
     allowBaseUrlOverride: true,
     authKind: "key",
+    keyOptional: true,
     apiKeyValidation: "unknown",
     dashboardUrl: "https://console.aws.amazon.com/bedrock/home#/api-keys",
     jawcodeBundle: "amazon-bedrock",
     extraMetadataAliases: ["bedrock", "aws-bedrock"],
-    note: "Claude on AWS, billed to your AWS account — set `region`, paste a Bedrock API key",
+    note: "Claude on AWS, billed to your AWS account. Key optional: without one, requests are signed with your AWS profile (aws sso login).",
     region: BEDROCK_DEFAULT_REGION,
     models: [...ANTHROPIC_MODELS],
     liveModels: false,

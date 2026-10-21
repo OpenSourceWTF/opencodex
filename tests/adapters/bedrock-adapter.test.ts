@@ -10,7 +10,13 @@ import {
   resolveBedrockRegion,
 } from "../../src/adapters/bedrock";
 import { encodeMessage } from "../../src/lib/eventstream-decoder";
+import { __resetAwsCredentialCache } from "../../src/lib/aws-credentials";
+import { sha256Hex } from "../../src/lib/aws-sigv4";
 import { parseRequest } from "../../src/responses/parser";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { removeTreeWithRetry } from "../helpers/remove-tree";
 import type { AdapterEvent, OcxProviderConfig } from "../../src/types";
 import { withTestTranslatorBudget } from "../helpers/translator-budget";
 
@@ -32,17 +38,17 @@ function request(model: string, stream = true) {
   return parseRequest({ model, stream, input: [{ role: "user", content: "Hello from test" }] });
 }
 
-const origAwsRegion = process.env.AWS_REGION;
-const origAwsDefaultRegion = process.env.AWS_DEFAULT_REGION;
+const AWS_ENV = ["AWS_REGION", "AWS_DEFAULT_REGION", "AWS_PROFILE", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"] as const;
+const origAwsEnv = Object.fromEntries(AWS_ENV.map(name => [name, process.env[name]])) as Record<typeof AWS_ENV[number], string | undefined>;
 
 beforeEach(() => {
-  delete process.env.AWS_REGION;
-  delete process.env.AWS_DEFAULT_REGION;
+  for (const name of AWS_ENV) delete process.env[name];
 });
 
 afterEach(() => {
-  if (origAwsRegion === undefined) delete process.env.AWS_REGION; else process.env.AWS_REGION = origAwsRegion;
-  if (origAwsDefaultRegion === undefined) delete process.env.AWS_DEFAULT_REGION; else process.env.AWS_DEFAULT_REGION = origAwsDefaultRegion;
+  for (const name of AWS_ENV) {
+    if (origAwsEnv[name] === undefined) delete process.env[name]; else process.env[name] = origAwsEnv[name];
+  }
 });
 
 describe("bedrock destination arithmetic", () => {
@@ -179,13 +185,52 @@ describe("bedrock adapter buildRequest", () => {
     expect(req.headers["anthropic-beta"]).toBeUndefined();
   });
 
-  test("reserved headers cannot be overridden and a missing key fails closed", async () => {
+  test("reserved headers cannot be overridden and a bad region fails closed", async () => {
     await expect(createBedrockAdapter(provider({ headers: { Authorization: "Bearer other" } })).buildRequest(request("claude-sonnet-5-5")))
       .rejects.toThrow('Reserved header "Authorization"');
-    await expect(createBedrockAdapter(provider({ apiKey: "   " })).buildRequest(request("claude-sonnet-5-5")))
-      .rejects.toThrow("requires a Bedrock API key");
     await expect(createBedrockAdapter(provider({ region: "bogus" })).buildRequest(request("claude-sonnet-5-5")))
       .rejects.toThrow("region must be a single lowercase AWS region label");
+  });
+
+  test("without an API key the request is SigV4-signed with AWS credentials and carries no bearer", async () => {
+    __resetAwsCredentialCache();
+    process.env.AWS_ACCESS_KEY_ID = "AKIATEST";
+    process.env.AWS_SECRET_ACCESS_KEY = "test-secret";
+    process.env.AWS_SESSION_TOKEN = "test-session";
+    try {
+      const req = await createBedrockAdapter(provider({ apiKey: undefined, region: "eu-west-1" })).buildRequest(request("claude-sonnet-5-5"));
+      expect(req.url).toBe("https://bedrock-runtime.eu-west-1.amazonaws.com/model/eu.anthropic.claude-sonnet-5-5/invoke-with-response-stream");
+      expect(req.headers.authorization).toStartWith("AWS4-HMAC-SHA256 Credential=AKIATEST/");
+      expect(req.headers.authorization).toContain("/eu-west-1/bedrock/aws4_request, SignedHeaders=content-type;host;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=");
+      expect(req.headers["x-amz-security-token"]).toBe("test-session");
+      expect(req.headers.host).toBe("bedrock-runtime.eu-west-1.amazonaws.com");
+      expect(req.headers["x-amz-content-sha256"]).toBe(sha256Hex(req.body));
+      expect(req.headers["Accept"]).toBe("application/vnd.amazon.eventstream");
+      expect(Object.keys(req.headers).filter(h => h.toLowerCase() === "authorization")).toHaveLength(1);
+      const body = JSON.parse(req.body) as Record<string, unknown>;
+      expect(body.anthropic_version).toBe(BEDROCK_ANTHROPIC_VERSION);
+    } finally {
+      delete process.env.AWS_ACCESS_KEY_ID;
+      delete process.env.AWS_SECRET_ACCESS_KEY;
+      delete process.env.AWS_SESSION_TOKEN;
+      __resetAwsCredentialCache();
+    }
+  });
+
+  test("without an API key or any AWS credentials the error names the profile and the login path", async () => {
+    __resetAwsCredentialCache();
+    const home = mkdtempSync(join(tmpdir(), "bedrock-nohome-"));
+    const origHome = process.env.HOME;
+    process.env.HOME = home;
+    delete process.env.AWS_PROFILE;
+    try {
+      await expect(createBedrockAdapter(provider({ apiKey: undefined, awsProfile: "missing" })).buildRequest(request("claude-sonnet-5-5")))
+        .rejects.toThrow(/no API key and AWS credentials could not be resolved: AWS profile "missing" was not found/);
+    } finally {
+      if (origHome === undefined) delete process.env.HOME; else process.env.HOME = origHome;
+      __resetAwsCredentialCache();
+      await removeTreeWithRetry(home);
+    }
   });
 });
 

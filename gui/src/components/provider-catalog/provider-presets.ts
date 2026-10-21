@@ -27,6 +27,8 @@ export interface CatalogPreset {
   note?: string;
   /** API key is optional — provider works without one (keyless free). */
   keyOptional?: boolean;
+  /** Amazon Bedrock seed region, prefilled into the add form. */
+  region?: string;
   /** Free pricing — may still require an API key (e.g. NVIDIA NIM). */
   freeTier?: boolean;
   /** Sponsor tier (SPONSORS.md). Sponsor rows are pinned to the top of their tab and chipped. */

@@ -2,7 +2,7 @@ import { IconExternal, IconKey } from "../icons";
 import { useT } from "../i18n/shared";
 import { Trans } from "../i18n/provider";
 import type { CatalogPreset } from "./provider-catalog/provider-presets";
-import type { ProviderPayloadForm } from "../provider-payload";
+import { isBedrockAdapter, type ProviderPayloadForm } from "../provider-payload";
 import { AddProviderField } from "./add-provider-modal-field";
 import { baseUrlForChoice } from "../base-url-choice";
 import { canConfigureResponsesReasoningReplay } from "../responses-reasoning-replay";
@@ -154,6 +154,26 @@ export function AddProviderFormPane({
             <Trans k="modal.subscriptionCliWarning" cmd="claude -p" vars={{ apiProvider: SUBSCRIPTION_CLI_API_KEY_ALTERNATIVE }} />
           </div>
         </div>
+      ) : isBedrockAdapter(form.adapter) ? (
+        <>
+          <AddProviderField label={t("modal.bedrockRegion")}>
+            <input className="input" data-bedrock-region="" value={form.region ?? ""} onChange={e => onFormChange({ ...form, region: e.target.value })} placeholder={t("modal.bedrockRegionPlaceholder")} />
+          </AddProviderField>
+          <AddProviderField label={t("modal.bedrockProfile")}>
+            <input className="input" data-bedrock-profile="" value={form.awsProfile ?? ""} onChange={e => onFormChange({ ...form, awsProfile: e.target.value })} placeholder={t("modal.bedrockProfilePlaceholder")} />
+          </AddProviderField>
+          <AddProviderField label={t("modal.bedrockApiKey")}>
+            <input className="input" type="password" value={form.apiKey} onChange={e => onFormChange({ ...form, apiKey: e.target.value })} placeholder={t("modal.apiKeyPlaceholder")} />
+          </AddProviderField>
+          <div className="text-label leading-relaxed" style={{ color: "var(--muted)" }}>
+            {t("modal.bedrockAuthHint")}{" "}
+            {preset.dashboardUrl && (
+              <a href={preset.dashboardUrl} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                {t("modal.getApiKey", { label: preset.label })}<IconExternal style={{ width: 12, height: 12 }} />
+              </a>
+            )}
+          </div>
+        </>
       ) : preset.keyOptional ? (
         <div className="text-label leading-relaxed" style={{ color: "var(--green)", background: "var(--green-soft)", border: "1px solid var(--green)", borderRadius: "var(--radius-sm)", padding: "10px 12px" }}>
           <strong>{t("modal.freeTierTitle")}</strong> — {preset.note ?? t("modal.freeTierDefault")}

@@ -13,6 +13,8 @@ import {
   canonicalClaudeModelId,
   resolveBedrockRegion,
 } from "../providers/bedrock-destination";
+import { AwsCredentialError, resolveAwsCredentials } from "../lib/aws-credentials";
+import { signAwsRequest } from "../lib/aws-sigv4";
 
 export {
   BEDROCK_ANTHROPIC_VERSION,
@@ -36,7 +38,9 @@ export {
  * - Body: no `model`, no `stream`, `anthropic_version: "bedrock-2023-05-31"`, and betas moved
  *   from the `anthropic-beta` header into an `anthropic_beta` array. Anthropic-only fields
  *   (`speed`, `service_tier`, top-level automatic `cache_control`, the 1h cache `ttl`) are dropped.
- * - Auth: a Bedrock API key as `Authorization: Bearer`. AWS SigV4 is not implemented.
+ * - Auth: a Bedrock API key as `Authorization: Bearer` when one is configured; otherwise AWS
+ *   SigV4 with credentials from the AWS profile (`awsProfile`, `AWS_PROFILE`, `default`): env
+ *   keys, shared credentials, or an IAM Identity Center (SSO) session (`src/lib/aws-credentials.ts`).
  * - Stream: `application/vnd.amazon.eventstream` frames whose `chunk` payload carries the
  *   base64 Anthropic event. Frames are re-encoded as SSE and handed to the anthropic parser, so
  *   every Messages event rule (refusals, `error` stop reasons, truncation) applies unchanged.
@@ -50,6 +54,7 @@ export const BEDROCK_RESERVED_HEADERS = new Set([
   "host",
   "x-amz-security-token",
   "x-amz-date",
+  "x-amz-content-sha256",
 ]);
 
 /** Fields of the Messages body that Bedrock rejects or that only api.anthropic.com honors. */
@@ -252,6 +257,9 @@ export function createBedrockAdapter(
       ...provider,
       authMode: "key",
       apiKeyTransport: "bearer",
+      // The wrapped builder requires a key only to place a header this adapter discards; SigV4 and
+      // bearer auth are both applied below on the rebuilt header set.
+      apiKey: typeof provider.apiKey === "string" && provider.apiKey.trim() ? provider.apiKey : "bedrock-sigv4",
       baseUrl: origin,
       headers: undefined,
       // Bedrock has no fast lane and no service tier; keep the wrapped adapter from emitting them.
@@ -277,9 +285,6 @@ export function createBedrockAdapter(
 
     async buildRequest(parsed: OcxParsedRequest, incoming: IncomingMeta): Promise<AdapterRequest> {
       const key = typeof provider.apiKey === "string" ? provider.apiKey.trim() : "";
-      if (!key) {
-        throw new Error("amazon-bedrock provider requires a Bedrock API key (apiKey) — create one under Amazon Bedrock > API keys");
-      }
       if (provider.headers) {
         for (const name of Object.keys(provider.headers)) {
           if (BEDROCK_RESERVED_HEADERS.has(name.toLowerCase())) {
@@ -304,7 +309,7 @@ export function createBedrockAdapter(
       );
       if (betas.length > 0) body.anthropic_beta = betas;
 
-      const headers: Record<string, string> = {
+      let headers: Record<string, string> = {
         "Content-Type": "application/json",
         "Accept": parsed.stream ? "application/vnd.amazon.eventstream" : "application/json",
       };
@@ -314,13 +319,38 @@ export function createBedrockAdapter(
           headers[name] = value;
         }
       }
-      headers["Authorization"] = `Bearer ${key}`;
+      const url = bedrockModelUrl(origin, wireModelId, parsed.stream);
+      const serialized = JSON.stringify(body);
+      if (key) {
+        headers["Authorization"] = `Bearer ${key}`;
+      } else {
+        // No API key: sign with AWS credentials. The signature covers the final bytes, so this is
+        // the last step; a retry re-sends the same signed request inside SigV4's 15-minute window.
+        let credentials;
+        try {
+          credentials = await resolveAwsCredentials({ profile: provider.awsProfile, signal: incoming?.abortSignal });
+        } catch (error) {
+          if (error instanceof AwsCredentialError) {
+            throw new Error(`amazon-bedrock has no API key and AWS credentials could not be resolved: ${error.message}`);
+          }
+          throw error;
+        }
+        headers = signAwsRequest({
+          method: "POST",
+          url,
+          headers,
+          body: serialized,
+          region,
+          service: "bedrock",
+          credentials,
+        }).headers;
+      }
 
       return {
         ...inner,
-        url: bedrockModelUrl(origin, wireModelId, parsed.stream),
+        url,
         headers,
-        body: JSON.stringify(body),
+        body: serialized,
         outboundModelId: wireModelId,
       };
     },

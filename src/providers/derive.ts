@@ -86,6 +86,8 @@ export interface DerivedProviderPreset {
   dashboardUrl?: string;
   note?: string;
   keyOptional?: boolean;
+  /** Amazon Bedrock seed region, so the dashboard form can prefill it. */
+  region?: string;
   /** Free pricing (may still require a key). */
   freeTier?: boolean;
   /** Sponsor tier from SPONSORS.md; the picker pins and labels these rows. */
@@ -306,6 +308,7 @@ export function providerConfigSeed(entry: ProviderRegistryEntry): OcxProviderCon
     ...(entry.project ? { project: entry.project } : {}),
     ...(entry.location ? { location: entry.location } : {}),
     ...(entry.region ? { region: entry.region } : {}),
+    ...(entry.awsProfile ? { awsProfile: entry.awsProfile } : {}),
   };
 }
 
@@ -360,6 +363,7 @@ export function deriveKeyLoginMap(): Record<string, DerivedKeyLoginProvider> {
       ...(entry.project ? { project: entry.project } : {}),
       ...(entry.location ? { location: entry.location } : {}),
       ...(entry.region ? { region: entry.region } : {}),
+      ...(entry.awsProfile ? { awsProfile: entry.awsProfile } : {}),
     };
   }
   return out;
@@ -690,6 +694,7 @@ function entryToPreset(entry: ProviderRegistryEntry): DerivedProviderPreset {
     ...(entry.dashboardUrl ? { dashboardUrl: entry.dashboardUrl } : {}),
     ...(entry.note ? { note: entry.note } : {}),
     ...(entry.keyOptional ? { keyOptional: true } : {}),
+    ...(entry.region ? { region: entry.region } : {}),
     ...(entry.freeTier ? { freeTier: true } : {}),
     ...(entry.sponsor ? { sponsor: entry.sponsor.tier, sponsorUrl: entry.sponsor.url } : {}),
     ...(entry.baseUrlChoices ? { baseUrlChoices: entry.baseUrlChoices.map(c => ({ ...c })) } : {}),

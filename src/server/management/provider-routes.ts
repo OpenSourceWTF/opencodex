@@ -409,6 +409,15 @@ function applyProviderPatchFields(
       return { error: "apiKeyTransport must be x-api-key, bearer, or empty to clear" };
     }
   }
+  for (const field of ["region", "awsProfile"] as const) {
+    if (!Object.hasOwn(rawBody, field)) continue;
+    const value = rawBody[field];
+    if (typeof value !== "string") return { error: `${field} must be a string` };
+    const trimmed = value.trim();
+    if (trimmed) next[field] = trimmed;
+    else delete next[field];
+    touched = true;
+  }
   if (Object.hasOwn(rawBody, "note")) {
     if (typeof rawBody.note !== "string") return { error: "note must be a string" };
     const note = rawBody.note.trim();
@@ -930,6 +939,8 @@ export async function handleProviderRoutes(ctx: ManagementContext): Promise<Resp
       upstreamWebsocket: p.upstreamWebsocket,
       authMode: p.authMode,
       apiKeyTransport: p.apiKeyTransport,
+      region: p.region,
+      awsProfile: p.awsProfile,
       disabled: p.disabled === true,
       codexAccountMode: providerCodexAccountMode(name, p),
       ...(name === "xai" ? { xaiResponsesOptInState: xaiResponsesOptInState(p) } : {}),

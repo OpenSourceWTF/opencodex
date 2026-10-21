@@ -139,6 +139,7 @@ export const REGISTRY_FIELD_MODEL_ID_ROLES = {
   project: NONE,
   location: NONE,
   region: NONE,
+  awsProfile: NONE,
 } satisfies Record<keyof ProviderRegistryEntry, RegistryFieldModelIdRole>;
 
 /**

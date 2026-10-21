@@ -125,6 +125,9 @@ export type ProviderUpdatePatch = {
   defaultModel?: string;
   apiKey?: string;
   apiKeyTransport?: "x-api-key" | "bearer" | "";
+  /** Amazon Bedrock fields; an empty string clears the saved value. */
+  region?: string;
+  awsProfile?: string;
   authMode?: string;
   note?: string;
   disabled?: boolean;

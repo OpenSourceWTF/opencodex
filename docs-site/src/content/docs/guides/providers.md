@@ -1425,15 +1425,18 @@ unknown; successful key authentication is established by a subsequent inference 
 Messages route. It is the natural last-resort target behind a Claude subscription pool: when every
 pooled account is cooled, a failover combo hops to Bedrock and the request keeps its Claude model.
 
-1. In the AWS console open **Amazon Bedrock > API keys** and create a long-term key (make sure the
-   Claude models you want are enabled for the account in that region).
-2. `ocx provider add amazon-bedrock` (or pick **Amazon Bedrock (Claude)** in the dashboard's Add
-   provider picker) and paste the key. Key validation reports *unknown*: the runtime host has no
-   `/models` endpoint to probe.
-3. Set `region` to your Bedrock source region. Canonical Claude ids (`claude-opus-5-5`,
-   `claude-sonnet-5-5`, ...) are mapped onto that region's cross-region inference profile
-   (`us.anthropic.claude-opus-5-5`, `eu.anthropic...`). To pin another profile, use the full
-   Bedrock id as the model, for example `global.anthropic.claude-sonnet-5-5`.
+1. Sign in to AWS. With IAM Identity Center (SSO) that is `aws sso login --profile <name>`; the
+   proxy reuses that session (and refreshes it) so no key is needed. Alternatively create a
+   long-term key under **Amazon Bedrock > API keys**. Either way, make sure the Claude models you
+   want are enabled for the account in your region.
+2. Pick **Amazon Bedrock (Claude)** in the dashboard's Add provider picker (or
+   `ocx provider add amazon-bedrock`). The form has the AWS region, the AWS profile, and an optional
+   Bedrock API key. Leave the key empty to sign with the profile's credentials. Key validation
+   reports *unknown*: the runtime host has no `/models` endpoint to probe.
+3. Canonical Claude ids (`claude-opus-5-5`, `claude-sonnet-5-5`, ...) are mapped onto the region's
+   cross-region inference profile (`us.anthropic.claude-opus-5-5`, `eu.anthropic...`). To pin
+   another profile, use the full Bedrock id as the model, for example
+   `global.anthropic.claude-sonnet-5-5`.
 
 ```json
 {
@@ -1442,8 +1445,8 @@ pooled account is cooled, a failover combo hops to Bedrock and the request keeps
       "adapter": "bedrock",
       "baseUrl": "https://bedrock-runtime.us-east-1.amazonaws.com",
       "authMode": "key",
-      "apiKey": "${AWS_BEARER_TOKEN_BEDROCK}",
-      "region": "us-east-1"
+      "region": "us-east-1",
+      "awsProfile": "bedrock"
     }
   },
   "combos": {
@@ -1460,8 +1463,9 @@ pooled account is cooled, a failover combo hops to Bedrock and the request keeps
 }
 ```
 
-Auth is the Bedrock API key as a bearer token; AWS SigV4 and `~/.aws` profiles are not supported.
-Bedrock has no fast mode, no service tiers and no Anthropic server-side web search; prompt caching
+With no key, requests are AWS SigV4-signed from the profile's credentials (`awsProfile`, else
+`AWS_PROFILE`, else `default`; static keys or an SSO session). `role_arn` chaining and
+`credential_process` are not supported. Bedrock has no fast mode, no service tiers and no Anthropic server-side web search; prompt caching
 uses the five-minute breakpoint. Pricing and context windows come from the `amazon-bedrock`
 metadata bundle. See [Combos](/guides/combos/) for the failover rules and the metered-target consent.
 

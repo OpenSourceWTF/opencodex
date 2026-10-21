@@ -47,6 +47,7 @@ import { modelAutoCompactTokenLimitsConfigError } from "../providers/auto-compac
 import { vercelGatewayRoutingConfigError } from "../providers/vercel-gateway-routing";
 import { googleVertexLocationConfigError } from "../providers/google-vertex-location";
 import { bedrockRegionConfigError } from "../providers/bedrock-destination";
+import { awsProfileConfigError } from "../lib/aws-credentials";
 import { xaiResponsesOptInState } from "../providers/xai-responses-opt-in";
 
 let _corsOrigin = "http://localhost:10100";
@@ -855,6 +856,10 @@ export function providerManagementConfigError(
     const regionError = bedrockRegionConfigError(typed.region);
     if (regionError) return `provider ${name} ${regionError}`;
   }
+  if (typed.adapter === "bedrock" && typed.awsProfile !== undefined) {
+    const profileError = awsProfileConfigError(typed.awsProfile);
+    if (profileError) return `provider ${name} ${profileError}`;
+  }
   const destinationError = providerDestinationConfigError(name, typed);
   if (destinationError) return `provider ${name} ${destinationError}`;
   for (const field of ["responsesPath", "chatCompletionsPath"] as const) {
@@ -1196,6 +1201,7 @@ const PROVIDER_CONFIG_FIELD_POLICY = {
   project: "editor",
   location: "editor",
   region: "editor",
+  awsProfile: "editor",
   mcpServers: "redacted",
   desktopExecutor: "redacted",
   unsafeAllowNativeLocalExec: "editor",

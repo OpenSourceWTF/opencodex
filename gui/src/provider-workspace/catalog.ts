@@ -38,6 +38,10 @@ export interface WorkspaceProvider {
   hasHeaders?: boolean;
   defaultModel?: string;
   apiKeyTransport?: "x-api-key" | "bearer";
+  /** Amazon Bedrock (`bedrock` adapter) source region. */
+  region?: string;
+  /** Amazon Bedrock AWS profile used for SigV4 when no API key is stored. */
+  awsProfile?: string;
   /** Static/configured model ids from provider config (offline fallback). */
   models?: string[];
   /** Whether the proxy fetches the provider's live model catalog (default true). */
@@ -179,10 +183,13 @@ export function isAccountProvider(name: string, p: WorkspaceProvider): boolean {
  * account providers, and a subscription CLI row (`claude-cli`) is NOT free either:
  * its `keyOptional` means the CLI owns the credential and bills the user's
  * subscription, so it sorts, filters and groups with the paid API rows. Does **not**
- * imply ready-without-key — use `binProviderStatus` for readiness.
+ * imply ready-without-key — use `binProviderStatus` for readiness. Amazon Bedrock is the
+ * other keyless-but-paid row: without a key it signs with the operator's AWS credentials
+ * and bills the AWS account.
  */
 export function isFreeProvider(p: WorkspaceProvider): boolean {
   if (isSubscriptionCliProvider(p)) return false;
+  if (p.adapter === "bedrock") return p.freeTier === true;
   return p.freeTier === true
     || p.keyOptional === true
     || p.authMode === "local"

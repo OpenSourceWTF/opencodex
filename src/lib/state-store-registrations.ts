@@ -29,6 +29,7 @@ import {
   reconcileConfigOwnershipRoots,
 } from "./config-ownership";
 import { reconcileGcpAdcTokens, sweepExpiredGcpAdcTokens } from "./gcp-adc";
+import { reconcileAwsCredentials, sweepExpiredAwsCredentials } from "./aws-credentials";
 import {
   reconcileOAuthFlowState,
   sweepExpiredXaiPermanentFailureVerdicts,
@@ -163,6 +164,7 @@ export const STATE_STORE_REGISTRATIONS = [
   { name: "codex-reauth", reconcileGeneration: reconcileCodexReauthState },
   { name: "oauth-reauth", reconcileGeneration: reconcileOAuthReauthState },
   { name: "gcp-adc", sweepExpired: sweepExpiredGcpAdcTokens, reconcileGeneration: reconcileGcpAdcTokens },
+  { name: "aws-credentials", sweepExpired: sweepExpiredAwsCredentials, reconcileGeneration: reconcileAwsCredentials },
   { name: "config-ownership", reconcileGeneration: reconcileConfigOwnershipRoots },
   { name: "oauth-flow-state", reconcileGeneration: reconcileOAuthFlowState },
   { name: "ocx-start-process-cache", sweepLiveness: sweepDeadOcxStartProcessCache },

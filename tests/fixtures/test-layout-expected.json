@@ -180,6 +180,8 @@
   "dsh-account-adapter.test.ts": "adapters",
   "bedrock-adapter.test.ts": "adapters",
   "bedrock-provider.test.ts": "providers",
+  "aws-sigv4.test.ts": "lib",
+  "aws-credentials.test.ts": "lib",
   "project-config-warning-snapshot.test.ts": "codex-integration",
   "codex-quota-auto-refresh-generation.test.ts": "codex-integration",
   "low-quota-desktop-notifier.test.ts": "codex-integration", "low-quota-protection.test.ts": "codex-integration", "provider-antigravity-quota-retry.test.ts": "providers",

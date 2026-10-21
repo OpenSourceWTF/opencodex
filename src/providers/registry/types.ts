@@ -373,6 +373,8 @@ export interface ProviderRegistryEntry {
   location?: string;
   /** Amazon Bedrock source region; the canonical runtime host follows it (`bedrock` adapter). */
   region?: string;
+  /** AWS shared-config profile the `bedrock` adapter signs with when no API key is configured. */
+  awsProfile?: string;
 }
 
 export type ProviderConfigSeed = Pick<
@@ -385,5 +387,5 @@ export type ProviderConfigSeed = Pick<
   | "reasoningEfforts" | "modelReasoningEfforts" | "modelDefaultReasoningEfforts" | "reasoningEffortMap" | "modelReasoningEffortMap" | "reasoningWireFormat"
   | "noVisionModels" | "noReasoningModels" | "noTemperatureModels" | "noTopPModels" | "noStopModels" | "noPenaltyModels"
   | "autoToolChoiceOnlyModels" | "preserveReasoningContentModels" | "requiresReasoningPlaceholderModels" | "reasoningSplitModels" | "inlineThinkTagModels" | "reasoningDetailsModels" | "thinkingToggleModels" | "thinkingBudgetModels" | "escapeBuiltinToolNames" | "openaiChatEofTolerance" | "showThinkingSummary"
-  | "googleMode" | "project" | "location" | "region" | "headers"
+  | "googleMode" | "project" | "location" | "region" | "awsProfile" | "headers"
 >;

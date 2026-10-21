@@ -1128,6 +1128,13 @@ export interface OcxProviderConfig {
    */
   region?: string;
   /**
+   * AWS shared-config profile (`~/.aws/config`, `~/.aws/credentials`) the `bedrock` adapter resolves
+   * credentials from when no `apiKey` is set: static keys or an IAM Identity Center (SSO) session
+   * signed in with `aws sso login`. Omitted: `AWS_PROFILE`, then `default`; with neither set,
+   * `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` win. Requests are then AWS SigV4-signed.
+   */
+  awsProfile?: string;
+  /**
    * Cursor adapter only: MCP servers opencodex starts/connects and exposes to the Cursor agent
    * as callable tools. Each entry is spawned (stdio `command`) or connected (`url`) lazily per
    * stream; their tools are advertised to the Cursor server and executed against the live server.

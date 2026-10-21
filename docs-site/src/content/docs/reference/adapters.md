@@ -370,9 +370,15 @@ MiMo model Command Code serves.
 **Targets:** Anthropic Claude models on Amazon Bedrock through the Messages wire
 (`https://bedrock-runtime.<region>.amazonaws.com/model/<modelId>/invoke-with-response-stream`, or
 `/invoke` for a non-streaming request).
-**Auth:** an Amazon Bedrock API key as `Authorization: Bearer`. AWS SigV4 signing and the
-`~/.aws` credential chain are not implemented; create a key under **Amazon Bedrock > API keys**
-in the AWS console, or reference the `AWS_BEARER_TOKEN_BEDROCK` variable with `${AWS_BEARER_TOKEN_BEDROCK}`.
+**Auth:** either an Amazon Bedrock API key as `Authorization: Bearer` (paste it, or reference
+`${AWS_BEARER_TOKEN_BEDROCK}`), or, when no key is configured, AWS Signature Version 4 with
+credentials resolved like the AWS CLI does: `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` when no
+profile is set, else the profile named by `awsProfile`, `AWS_PROFILE`, or `default` from
+`~/.aws/credentials` and `~/.aws/config`. An IAM Identity Center (SSO) profile uses the access token
+`aws sso login` cached under `~/.aws/sso/cache/`, refreshes it through SSO-OIDC when it has expired
+and carries a refresh token, and exchanges it for role credentials at the SSO portal. Role
+credentials are cached in memory until five minutes before they expire. `role_arn` chaining and
+`credential_process` are not implemented and fail with a message naming the field.
 
 - Wraps the `anthropic` adapter: the Messages body, the per-family thinking and effort rules,
   tool lowering, image normalization and the event parser are the same code, so a Claude model
@@ -400,8 +406,11 @@ in the AWS console, or reference the `AWS_BEARER_TOKEN_BEDROCK` variable with `$
 - No fast lane, no service tiers, and no Anthropic server tools (web search / web fetch run through
   the proxy's sidecars instead). The model roster is static (`liveModels: false`) because the
   runtime host has no `/models` endpoint, and key validation reports `unknown` rather than probing.
+- SigV4 signs the final body bytes plus `content-type`, `host`, `x-amz-content-sha256`,
+  `x-amz-date` and, for session credentials, `x-amz-security-token`. The canonical path is
+  double-encoded, so an inference-profile ARN in the route signs correctly.
 - Reserved request headers (`authorization`, `x-api-key`, `anthropic-version`, `host`,
-  `x-amz-security-token`, `x-amz-date`) cannot be set through `headers`.
+  `x-amz-security-token`, `x-amz-date`, `x-amz-content-sha256`) cannot be set through `headers`.
 
 ## `google`
 
