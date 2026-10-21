@@ -232,7 +232,7 @@ describe("bedrock adapter buildRequest", () => {
     process.env.HOME = home;
     delete process.env.AWS_PROFILE;
     try {
-      await expect(createBedrockAdapter(provider({ apiKey: undefined, awsProfile: "missing" })).buildRequest(request("claude-sonnet-5-5")))
+      await expect(createBedrockAdapter(provider({ apiKey: undefined, awsProfile: "missing", awsSsoAutoLogin: false })).buildRequest(request("claude-sonnet-5-5")))
         .rejects.toThrow(/no API key and AWS credentials could not be resolved: AWS profile "missing" was not found/);
     } finally {
       if (origHome === undefined) delete process.env.HOME; else process.env.HOME = origHome;

@@ -3140,6 +3140,7 @@ export const de: Record<TKey, string> = {
   "modal.bedrockProfile": "AWS-Profil",
   "modal.bedrockProfilePlaceholder": "AWS_PROFILE oder default",
   "modal.bedrockApiKey": "Bedrock-API-Schlüssel (optional)",
+  "modal.bedrockSsoAutoLogin": "Browser-SSO-Anmeldung automatisch öffnen, wenn die AWS-Sitzung abgelaufen ist",
   "modal.bedrockAuthHint": "Schlüssel leer lassen, um Anfragen mit den AWS-Anmeldedaten des Profils zu signieren: statische Schlüssel oder eine IAM-Identity-Center-Sitzung aus `aws sso login --profile <name>`. Claude-IDs wie claude-opus-5-5 werden auf das Inference-Profil der Region abgebildet; eine vollständige Bedrock-ID wie global.anthropic.claude-sonnet-5-5 wird unverändert gesendet.",
   "modal.defaultModelPlaceholder": "z. B. gpt-5.5",
  "modal.baseUrlPlaceholder": "https://...",

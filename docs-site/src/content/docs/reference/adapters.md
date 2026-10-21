@@ -377,7 +377,11 @@ profile is set, else the profile named by `awsProfile`, `AWS_PROFILE`, or `defau
 `~/.aws/credentials` and `~/.aws/config`. An IAM Identity Center (SSO) profile uses the access token
 `aws sso login` cached under `~/.aws/sso/cache/`, refreshes it through SSO-OIDC when it has expired
 and carries a refresh token, and exchanges it for role credentials at the SSO portal. Role
-credentials are cached in memory until five minutes before they expire. `role_arn` chaining and
+credentials are cached in memory until five minutes before they expire. When the SSO session is
+missing, expired beyond refresh, or rejected, the adapter runs `aws sso login --profile <name>`
+(the AWS CLI opens the browser), waits up to three minutes for approval, and retries; one login
+runs per profile at a time and concurrent requests wait on it. Set `awsSsoAutoLogin: false` to
+fail the request with the login command in the message instead. `role_arn` chaining and
 `credential_process` are not implemented and fail with a message naming the field.
 
 - Wraps the `anthropic` adapter: the Messages body, the per-family thinking and effort rules,

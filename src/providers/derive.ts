@@ -309,6 +309,7 @@ export function providerConfigSeed(entry: ProviderRegistryEntry): OcxProviderCon
     ...(entry.location ? { location: entry.location } : {}),
     ...(entry.region ? { region: entry.region } : {}),
     ...(entry.awsProfile ? { awsProfile: entry.awsProfile } : {}),
+    ...(entry.awsSsoAutoLogin !== undefined ? { awsSsoAutoLogin: entry.awsSsoAutoLogin } : {}),
   };
 }
 
@@ -364,6 +365,7 @@ export function deriveKeyLoginMap(): Record<string, DerivedKeyLoginProvider> {
       ...(entry.location ? { location: entry.location } : {}),
       ...(entry.region ? { region: entry.region } : {}),
       ...(entry.awsProfile ? { awsProfile: entry.awsProfile } : {}),
+      ...(entry.awsSsoAutoLogin !== undefined ? { awsSsoAutoLogin: entry.awsSsoAutoLogin } : {}),
     };
   }
   return out;

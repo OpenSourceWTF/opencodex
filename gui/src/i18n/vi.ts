@@ -1986,6 +1986,7 @@ export const vi: Record<TKey, string> = {
   "modal.bedrockProfile": "Hồ sơ AWS",
   "modal.bedrockProfilePlaceholder": "AWS_PROFILE hoặc default",
   "modal.bedrockApiKey": "Khóa API Bedrock (tùy chọn)",
+  "modal.bedrockSsoAutoLogin": "Tự động mở đăng nhập SSO trên trình duyệt khi phiên AWS hết hạn",
   "modal.bedrockAuthHint": "Để trống khóa để ký yêu cầu bằng thông tin xác thực AWS của hồ sơ: khóa tĩnh hoặc phiên IAM Identity Center từ `aws sso login --profile <tên>`. Các ID Claude như claude-opus-5-5 được ánh xạ tới hồ sơ suy luận của khu vực; ID Bedrock đầy đủ như global.anthropic.claude-sonnet-5-5 được gửi nguyên trạng.",
   "modal.defaultModelPlaceholder": "vd: gpt-5.5",
   "modal.baseUrlPlaceholderError": "Base URL có chứa {placeholder} chưa được giải quyết. Thay thế bằng giá trị thực tế của bạn.",

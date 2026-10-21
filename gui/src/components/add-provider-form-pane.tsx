@@ -162,6 +162,10 @@ export function AddProviderFormPane({
           <AddProviderField label={t("modal.bedrockProfile")}>
             <input className="input" data-bedrock-profile="" value={form.awsProfile ?? ""} onChange={e => onFormChange({ ...form, awsProfile: e.target.value })} placeholder={t("modal.bedrockProfilePlaceholder")} />
           </AddProviderField>
+          <label className="modal-field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <input type="checkbox" data-bedrock-sso-login="" checked={form.awsSsoAutoLogin !== false} onChange={e => onFormChange({ ...form, awsSsoAutoLogin: e.target.checked })} />
+            <span className="muted text-control">{t("modal.bedrockSsoAutoLogin")}</span>
+          </label>
           <AddProviderField label={t("modal.bedrockApiKey")}>
             <input className="input" type="password" value={form.apiKey} onChange={e => onFormChange({ ...form, apiKey: e.target.value })} placeholder={t("modal.apiKeyPlaceholder")} />
           </AddProviderField>

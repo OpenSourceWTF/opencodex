@@ -128,6 +128,8 @@ export type ProviderUpdatePatch = {
   /** Amazon Bedrock fields; an empty string clears the saved value. */
   region?: string;
   awsProfile?: string;
+  /** `null` clears the override (back to the default: on). */
+  awsSsoAutoLogin?: boolean | null;
   authMode?: string;
   note?: string;
   disabled?: boolean;

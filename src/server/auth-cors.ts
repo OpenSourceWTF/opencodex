@@ -1202,6 +1202,7 @@ const PROVIDER_CONFIG_FIELD_POLICY = {
   location: "editor",
   region: "editor",
   awsProfile: "editor",
+  awsSsoAutoLogin: "editor",
   mcpServers: "redacted",
   desktopExecutor: "redacted",
   unsafeAllowNativeLocalExec: "editor",

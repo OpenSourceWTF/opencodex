@@ -288,6 +288,7 @@ export function routedProviderConfig(providerName: string, provider: OcxProvider
     ...(provider.location === undefined && registryEntry.location !== undefined ? { location: registryEntry.location } : {}),
     ...(provider.region === undefined && registryEntry.region !== undefined ? { region: registryEntry.region } : {}),
     ...(provider.awsProfile === undefined && registryEntry.awsProfile !== undefined ? { awsProfile: registryEntry.awsProfile } : {}),
+    ...(provider.awsSsoAutoLogin === undefined && registryEntry.awsSsoAutoLogin !== undefined ? { awsSsoAutoLogin: registryEntry.awsSsoAutoLogin } : {}),
     ...(provider.contextWindow === undefined && registryEntry.contextWindow !== undefined ? { contextWindow: registryEntry.contextWindow } : {}),
     ...((provider.reasoningEfforts === undefined || hasLegacyClinePassReasoningEfforts(providerName, provider))
       && registryEntry.reasoningEfforts !== undefined

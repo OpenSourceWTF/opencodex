@@ -1464,8 +1464,10 @@ pooled account is cooled, a failover combo hops to Bedrock and the request keeps
 ```
 
 With no key, requests are AWS SigV4-signed from the profile's credentials (`awsProfile`, else
-`AWS_PROFILE`, else `default`; static keys or an SSO session). `role_arn` chaining and
-`credential_process` are not supported. Bedrock has no fast mode, no service tiers and no Anthropic server-side web search; prompt caching
+`AWS_PROFILE`, else `default`; static keys or an SSO session). When the SSO session has expired,
+the proxy opens the browser login (`aws sso login`) and continues once you approve it; untick
+"Open the browser SSO login automatically" in the provider form to get an error instead.
+`role_arn` chaining and `credential_process` are not supported. Bedrock has no fast mode, no service tiers and no Anthropic server-side web search; prompt caching
 uses the five-minute breakpoint. Pricing and context windows come from the `amazon-bedrock`
 metadata bundle. See [Combos](/guides/combos/) for the failover rules and the metered-target consent.
 

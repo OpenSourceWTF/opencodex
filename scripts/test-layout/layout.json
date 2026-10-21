@@ -111,6 +111,7 @@
     "bedrock-provider.test.ts": "providers",
     "aws-sigv4.test.ts": "lib",
     "aws-credentials.test.ts": "lib",
+    "aws-sso-login.test.ts": "lib",
     "cursor-local-installer.test.ts": "providers/cursor",
     "codex-quota-query-backoff.test.ts": "codex-integration",
     "pnpm-command-isolation.test.ts": "update", "provider-antigravity-quota-retry.test.ts": "providers", "project-config-warning-snapshot.test.ts": "codex-integration", "codex-quota-auto-refresh-generation.test.ts": "codex-integration", "codex-account-clear-paused.test.ts": "codex-integration",

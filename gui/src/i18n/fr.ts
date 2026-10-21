@@ -1989,6 +1989,7 @@ export const fr: Record<TKey, string> = {
   "modal.bedrockProfile": "Profil AWS",
   "modal.bedrockProfilePlaceholder": "AWS_PROFILE ou default",
   "modal.bedrockApiKey": "Clé API Bedrock (facultatif)",
+  "modal.bedrockSsoAutoLogin": "Ouvrir automatiquement la connexion SSO dans le navigateur quand la session AWS a expiré",
   "modal.bedrockAuthHint": "Laissez la clé vide pour signer les requêtes avec les identifiants AWS du profil : clés statiques, ou une session IAM Identity Center issue de `aws sso login --profile <nom>`. Les identifiants Claude comme claude-opus-5-5 sont mappés sur le profil d'inférence de la région ; un identifiant Bedrock complet tel que global.anthropic.claude-sonnet-5-5 est envoyé tel quel.",
   "modal.defaultModelPlaceholder": "p. ex. gpt-5.5",
   "modal.baseUrlPlaceholder": "https://...",

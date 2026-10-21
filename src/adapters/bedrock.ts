@@ -40,7 +40,8 @@ export {
  *   (`speed`, `service_tier`, top-level automatic `cache_control`, the 1h cache `ttl`) are dropped.
  * - Auth: a Bedrock API key as `Authorization: Bearer` when one is configured; otherwise AWS
  *   SigV4 with credentials from the AWS profile (`awsProfile`, `AWS_PROFILE`, `default`): env
- *   keys, shared credentials, or an IAM Identity Center (SSO) session (`src/lib/aws-credentials.ts`).
+ *   keys, shared credentials, or an IAM Identity Center (SSO) session (`src/lib/aws-credentials.ts`);
+ *   an unusable SSO session runs `aws sso login` in the browser first unless `awsSsoAutoLogin` is off.
  * - Stream: `application/vnd.amazon.eventstream` frames whose `chunk` payload carries the
  *   base64 Anthropic event. Frames are re-encoded as SSE and handed to the anthropic parser, so
  *   every Messages event rule (refusals, `error` stop reasons, truncation) applies unchanged.
@@ -328,7 +329,13 @@ export function createBedrockAdapter(
         // the last step; a retry re-sends the same signed request inside SigV4's 15-minute window.
         let credentials;
         try {
-          credentials = await resolveAwsCredentials({ profile: provider.awsProfile, signal: incoming?.abortSignal });
+          credentials = await resolveAwsCredentials({
+            profile: provider.awsProfile,
+            signal: incoming?.abortSignal,
+            // Mirrors Claude Code's awsAuthRefresh: an unusable SSO session opens the browser login
+            // and the request waits for it. Off only when the operator says so.
+            ssoLogin: { enabled: provider.awsSsoAutoLogin !== false },
+          });
         } catch (error) {
           if (error instanceof AwsCredentialError) {
             throw new Error(`amazon-bedrock has no API key and AWS credentials could not be resolved: ${error.message}`);

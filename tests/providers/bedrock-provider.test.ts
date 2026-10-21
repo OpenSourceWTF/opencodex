@@ -90,6 +90,7 @@ describe("amazon-bedrock management validation", () => {
     expect(providerManagementConfigError("amazon-bedrock", row({ apiKey: undefined, awsProfile: "bedrock" }))).toBeNull();
     expect(providerManagementConfigError("amazon-bedrock", row({ awsProfile: "has space" })))
       .toContain("awsProfile must be");
+    expect(providerManagementConfigError("amazon-bedrock", row({ awsSsoAutoLogin: false }))).toBeNull();
     // The region rule is scoped to the bedrock adapter; other adapters ignore the field.
     expect(providerManagementConfigError("custom-anthropic", {
       adapter: "anthropic", baseUrl: "https://api.anthropic.com", authMode: "key", apiKey: "k", region: "whatever",

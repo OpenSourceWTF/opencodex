@@ -1975,6 +1975,7 @@ export const ru: Record<TKey, string> = {
   "modal.bedrockProfile": "Профиль AWS",
   "modal.bedrockProfilePlaceholder": "AWS_PROFILE или default",
   "modal.bedrockApiKey": "API-ключ Bedrock (необязательно)",
+  "modal.bedrockSsoAutoLogin": "Автоматически открывать SSO-вход в браузере, когда сессия AWS истекла",
   "modal.bedrockAuthHint": "Оставьте ключ пустым, чтобы подписывать запросы учётными данными AWS профиля: статическими ключами или сессией IAM Identity Center из `aws sso login --profile <name>`. Идентификаторы Claude вида claude-opus-5-5 сопоставляются с inference-профилем региона; полный идентификатор Bedrock, например global.anthropic.claude-sonnet-5-5, отправляется как есть.",
   "modal.defaultModelPlaceholder": "напр. gpt-5.5",
   "modal.baseUrlPlaceholder": "https://...",

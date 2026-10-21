@@ -89,6 +89,7 @@ export default function ProviderSettings({
   const [apiKeyTransport, setApiKeyTransport] = useState(item.apiKeyTransport ?? "x-api-key");
   const [region, setRegion] = useState(item.region ?? "");
   const [awsProfile, setAwsProfile] = useState(item.awsProfile ?? "");
+  const [awsSsoAutoLogin, setAwsSsoAutoLogin] = useState(item.awsSsoAutoLogin !== false);
   const [note, setNote] = useState(item.note ?? "");
   const [allowPrivateNetwork, setAllowPrivateNetwork] = useState(item.allowPrivateNetwork ?? false);
   const [preserveReasoningReplay, setPreserveReasoningReplay] = useState(item.preserveResponsesReasoningContent === true);
@@ -123,6 +124,7 @@ export default function ProviderSettings({
     setApiKeyTransport(item.apiKeyTransport ?? "x-api-key");
     setRegion(item.region ?? "");
     setAwsProfile(item.awsProfile ?? "");
+    setAwsSsoAutoLogin(item.awsSsoAutoLogin !== false);
     setNote(item.note ?? "");
     setAllowPrivateNetwork(item.allowPrivateNetwork ?? false);
     setPreserveReasoningReplay(item.preserveResponsesReasoningContent === true);
@@ -137,7 +139,7 @@ export default function ProviderSettings({
     setMsg(null);
     setModeMsg(null);
     queueMicrotask(() => setEndpointChoice(matchChoiceId(baseUrlChoices, item.baseUrl)));
-  }, [item.adapter, item.baseUrl, item.defaultModel, item.authMode, item.apiKeyTransport, item.region, item.awsProfile, item.keyOptional, item.note, item.allowPrivateNetwork, item.preserveResponsesReasoningContent, savedLiveModels, savedCursorHttpVersion, item.requestPacing, baseUrlChoices]);
+  }, [item.adapter, item.baseUrl, item.defaultModel, item.authMode, item.apiKeyTransport, item.region, item.awsProfile, item.awsSsoAutoLogin, item.keyOptional, item.note, item.allowPrivateNetwork, item.preserveResponsesReasoningContent, savedLiveModels, savedCursorHttpVersion, item.requestPacing, baseUrlChoices]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Account mode syncs on its own: a mode PATCH refresh must not reset an in-progress
@@ -216,7 +218,7 @@ export default function ProviderSettings({
     || defaultModel.trim() !== (item.defaultModel ?? "")
     || authMode !== String(item.authMode ?? (item.keyOptional ? "local" : "key"))
     || (adapter.trim() === "anthropic" && authMode === "key" && apiKeyTransport !== (item.apiKeyTransport ?? "x-api-key"))
-    || (isBedrockAdapter(adapter) && (region.trim() !== (item.region ?? "") || awsProfile.trim() !== (item.awsProfile ?? "")))
+    || (isBedrockAdapter(adapter) && (region.trim() !== (item.region ?? "") || awsProfile.trim() !== (item.awsProfile ?? "") || awsSsoAutoLogin !== (item.awsSsoAutoLogin !== false)))
     || note.trim() !== (item.note ?? "")
     || allowPrivateNetwork !== (item.allowPrivateNetwork ?? false)
     || liveModels !== savedLiveModels
@@ -296,6 +298,7 @@ export default function ProviderSettings({
         if (isBedrockAdapter(adapter)) {
           patch.region = region.trim();
           patch.awsProfile = awsProfile.trim();
+          patch.awsSsoAutoLogin = awsSsoAutoLogin ? null : false;
         }
       }
       const res = await onUpdateProvider(item.name, patch);
@@ -359,6 +362,7 @@ export default function ProviderSettings({
     setApiKeyTransport(item.apiKeyTransport ?? "x-api-key");
     setRegion(item.region ?? "");
     setAwsProfile(item.awsProfile ?? "");
+    setAwsSsoAutoLogin(item.awsSsoAutoLogin !== false);
     setNote(item.note ?? ""); setAllowPrivateNetwork(item.allowPrivateNetwork ?? false); setLiveModels(savedLiveModels);
     setPreserveReasoningReplay(item.preserveResponsesReasoningContent === true);
     setCursorHttpVersion(savedCursorHttpVersion); setMsg(null);
@@ -529,6 +533,10 @@ export default function ProviderSettings({
             <span className="pwi-settings-label">{t("modal.bedrockProfile")}</span>
             <input className="input" data-bedrock-profile="" value={awsProfile} onChange={e => setAwsProfile(e.target.value)} placeholder={t("modal.bedrockProfilePlaceholder")} />
             <span className="pwi-settings-hint">{t("modal.bedrockAuthHint")}</span>
+          </label>
+          <label className="pwi-settings-field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <input type="checkbox" data-bedrock-sso-login="" checked={awsSsoAutoLogin} onChange={e => setAwsSsoAutoLogin(e.target.checked)} />
+            <span className="pwi-settings-label">{t("modal.bedrockSsoAutoLogin")}</span>
           </label>
         </>
       )}

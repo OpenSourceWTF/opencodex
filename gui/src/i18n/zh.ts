@@ -3160,6 +3160,7 @@ export const zh: Record<TKey, string> = {
   "modal.bedrockProfile": "AWS 配置文件",
   "modal.bedrockProfilePlaceholder": "AWS_PROFILE 或 default",
   "modal.bedrockApiKey": "Bedrock API 密钥（可选）",
+  "modal.bedrockSsoAutoLogin": "AWS 会话过期时自动打开浏览器 SSO 登录",
   "modal.bedrockAuthHint": "留空密钥即使用该配置文件的 AWS 凭证签名请求：静态密钥，或通过 `aws sso login --profile <name>` 获得的 IAM Identity Center 会话。claude-opus-5-5 这类 Claude ID 会映射到该区域的推理配置文件；global.anthropic.claude-sonnet-5-5 这类完整 Bedrock ID 原样发送。",
   "modal.defaultModelPlaceholder": "例如 gpt-5.5",
  "modal.baseUrlPlaceholder": "https://...",

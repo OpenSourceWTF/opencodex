@@ -3187,6 +3187,7 @@ export const ko: Record<TKey, string> = {
   "modal.bedrockProfile": "AWS 프로필",
   "modal.bedrockProfilePlaceholder": "AWS_PROFILE 또는 default",
   "modal.bedrockApiKey": "Bedrock API 키 (선택)",
+  "modal.bedrockSsoAutoLogin": "AWS 세션이 만료되면 브라우저 SSO 로그인을 자동으로 엽니다",
   "modal.bedrockAuthHint": "키를 비워 두면 프로필의 AWS 자격 증명(정적 키 또는 `aws sso login --profile <name>`의 IAM Identity Center 세션)으로 요청에 서명합니다. claude-opus-5-5 같은 Claude ID는 리전의 추론 프로필에 매핑되고, global.anthropic.claude-sonnet-5-5 같은 전체 Bedrock ID는 그대로 전송됩니다.",
   "modal.defaultModelPlaceholder": "예: gpt-5.5",
  "modal.baseUrlPlaceholder": "https://...",

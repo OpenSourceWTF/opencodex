@@ -425,6 +425,16 @@ function applyProviderPatchFields(
     else delete next.note;
     touched = true;
   }
+  if (Object.hasOwn(rawBody, "awsSsoAutoLogin")) {
+    if (rawBody.awsSsoAutoLogin === null) {
+      delete next.awsSsoAutoLogin;
+    } else if (typeof rawBody.awsSsoAutoLogin === "boolean") {
+      next.awsSsoAutoLogin = rawBody.awsSsoAutoLogin;
+    } else {
+      return { error: "awsSsoAutoLogin must be a boolean or null to clear" };
+    }
+    touched = true;
+  }
   if (Object.hasOwn(rawBody, "allowPrivateNetwork")) {
     if (typeof rawBody.allowPrivateNetwork !== "boolean") return { error: "allowPrivateNetwork must be a boolean" };
     next.allowPrivateNetwork = rawBody.allowPrivateNetwork;
@@ -941,6 +951,7 @@ export async function handleProviderRoutes(ctx: ManagementContext): Promise<Resp
       apiKeyTransport: p.apiKeyTransport,
       region: p.region,
       awsProfile: p.awsProfile,
+      awsSsoAutoLogin: p.awsSsoAutoLogin,
       disabled: p.disabled === true,
       codexAccountMode: providerCodexAccountMode(name, p),
       ...(name === "xai" ? { xaiResponsesOptInState: xaiResponsesOptInState(p) } : {}),

@@ -2016,6 +2016,7 @@ export const en = {
   "modal.bedrockProfile": "AWS profile",
   "modal.bedrockProfilePlaceholder": "AWS_PROFILE or default",
   "modal.bedrockApiKey": "Bedrock API key (optional)",
+  "modal.bedrockSsoAutoLogin": "Open the browser SSO login automatically when the AWS session has expired",
   "modal.bedrockAuthHint": "Leave the key empty to sign requests with the AWS credentials of the profile: static keys, or an IAM Identity Center session from `aws sso login --profile <name>`. Claude ids like claude-opus-5-5 map onto the region's inference profile; a full Bedrock id such as global.anthropic.claude-sonnet-5-5 is sent as-is.",
   "modal.defaultModelPlaceholder": "e.g. gpt-5.5",
  "modal.baseUrlPlaceholder": "https://...",

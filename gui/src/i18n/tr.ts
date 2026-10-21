@@ -2002,6 +2002,7 @@ export const tr: Record<TKey, string> = {
   "modal.bedrockProfile": "AWS profili",
   "modal.bedrockProfilePlaceholder": "AWS_PROFILE veya default",
   "modal.bedrockApiKey": "Bedrock API anahtarı (isteğe bağlı)",
+  "modal.bedrockSsoAutoLogin": "AWS oturumu sona erdiğinde tarayıcı SSO girişini otomatik aç",
   "modal.bedrockAuthHint": "İstekleri profilin AWS kimlik bilgileriyle imzalamak için anahtarı boş bırakın: statik anahtarlar veya `aws sso login --profile <ad>` ile açılan IAM Identity Center oturumu. claude-opus-5-5 gibi Claude kimlikleri bölgenin çıkarım profiline eşlenir; global.anthropic.claude-sonnet-5-5 gibi tam Bedrock kimlikleri olduğu gibi gönderilir.",
   "modal.defaultModelPlaceholder": "örn. gpt-5.5",
   "modal.baseUrlPlaceholder": "https://...",

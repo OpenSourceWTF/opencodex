@@ -375,6 +375,8 @@ export interface ProviderRegistryEntry {
   region?: string;
   /** AWS shared-config profile the `bedrock` adapter signs with when no API key is configured. */
   awsProfile?: string;
+  /** Run `aws sso login` in the browser when the profile's SSO session is unusable (default on). */
+  awsSsoAutoLogin?: boolean;
 }
 
 export type ProviderConfigSeed = Pick<
@@ -387,5 +389,5 @@ export type ProviderConfigSeed = Pick<
   | "reasoningEfforts" | "modelReasoningEfforts" | "modelDefaultReasoningEfforts" | "reasoningEffortMap" | "modelReasoningEffortMap" | "reasoningWireFormat"
   | "noVisionModels" | "noReasoningModels" | "noTemperatureModels" | "noTopPModels" | "noStopModels" | "noPenaltyModels"
   | "autoToolChoiceOnlyModels" | "preserveReasoningContentModels" | "requiresReasoningPlaceholderModels" | "reasoningSplitModels" | "inlineThinkTagModels" | "reasoningDetailsModels" | "thinkingToggleModels" | "thinkingBudgetModels" | "escapeBuiltinToolNames" | "openaiChatEofTolerance" | "showThinkingSummary"
-  | "googleMode" | "project" | "location" | "region" | "awsProfile" | "headers"
+  | "googleMode" | "project" | "location" | "region" | "awsProfile" | "awsSsoAutoLogin" | "headers"
 >;

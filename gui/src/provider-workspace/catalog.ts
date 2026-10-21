@@ -42,6 +42,8 @@ export interface WorkspaceProvider {
   region?: string;
   /** Amazon Bedrock AWS profile used for SigV4 when no API key is stored. */
   awsProfile?: string;
+  /** Amazon Bedrock: browser SSO login on an unusable session (omitted = on). */
+  awsSsoAutoLogin?: boolean;
   /** Static/configured model ids from provider config (offline fallback). */
   models?: string[];
   /** Whether the proxy fetches the provider's live model catalog (default true). */

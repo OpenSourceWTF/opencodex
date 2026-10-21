@@ -1135,6 +1135,13 @@ export interface OcxProviderConfig {
    */
   awsProfile?: string;
   /**
+   * `bedrock` adapter: when the profile's IAM Identity Center session is missing, expired beyond
+   * refresh, or rejected, run `aws sso login --profile <awsProfile>` (opens the browser), wait for
+   * approval, and retry — the same recovery Claude Code's `awsAuthRefresh` performs. Default on;
+   * `false` fails the request with the login command in the message instead.
+   */
+  awsSsoAutoLogin?: boolean;
+  /**
    * Cursor adapter only: MCP servers opencodex starts/connects and exposes to the Cursor agent
    * as callable tools. Each entry is spawned (stdio `command`) or connected (`url`) lazily per
    * stream; their tools are advertised to the Cursor server and executed against the live server.

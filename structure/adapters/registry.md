@@ -40,13 +40,15 @@ Some adapters share another adapter's routed-tool semantics while retaining inde
   no cache `ttl`), auth (a Bedrock API key as bearer, else AWS SigV4 from `src/lib/aws-sigv4.ts`
   with credentials resolved by `src/lib/aws-credentials.ts`: env keys, the `awsProfile` /
   `AWS_PROFILE` / `default` shared-config profile, or an `aws sso login` session refreshed through
-  SSO-OIDC and exchanged at the SSO portal, cached in the `aws-credentials` state store), and the
+  SSO-OIDC and exchanged at the SSO portal, cached in the `aws-credentials` state store; an
+  unusable session runs the fixed `aws sso login --profile <name>` from `src/lib/aws-sso-login.ts`
+  and retries once, unless `awsSsoAutoLogin` is off), and the
   `application/vnd.amazon.eventstream` body, which
   is re-encoded as SSE and handed to the anthropic parser so one terminal event rule holds.
   Smithy exception frames become the HTTP status the same failure carries pre-stream
   (`throttlingException` -> 429), which is what combo failover and key rotation branch on.
   Coverage: `tests/adapters/bedrock-adapter.test.ts`, `tests/providers/bedrock-provider.test.ts`,
-  `tests/lib/aws-sigv4.test.ts`, `tests/lib/aws-credentials.test.ts`.
+  `tests/lib/aws-sigv4.test.ts`, `tests/lib/aws-credentials.test.ts`, `tests/lib/aws-sso-login.test.ts`.
 - `claude-cli` inherits the `codebuddy` contract. Claude Code speaks the same stream-json
   protocol this repository already parses for CodeBuddy and Qoder, so the wire is inherited and the
   family module (`src/adapters/claude-cli/`) supplies only its own arguments and child environment.

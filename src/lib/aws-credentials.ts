@@ -3,6 +3,7 @@ import { chmodSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { GenerationContext } from "./state-store-sweeper";
+import { runAwsSsoLogin, type RunAwsSsoLoginOptions } from "./aws-sso-login";
 
 /**
  * AWS credential resolution for the `bedrock` adapter, with no `@aws-sdk/*` dependency.
@@ -20,6 +21,10 @@ import type { GenerationContext } from "./state-store-sweeper";
  * `role_arn`/`source_profile` chaining and `credential_process` are not implemented; a profile
  * that needs them fails with a message that names the field. Resolved credentials are cached in
  * memory until shortly before they expire.
+ *
+ * When an SSO session is missing, expired beyond refresh, or rejected, and `ssoLogin` is enabled,
+ * the interactive `aws sso login --profile <name>` is run once (it opens the browser) and the
+ * profile is resolved again — the same recovery Claude Code's own `awsAuthRefresh` performs.
  */
 
 export interface AwsCredentials {
@@ -42,6 +47,8 @@ export interface ResolveAwsCredentialsOptions {
   fetch?: FetchImpl;
   now?: () => number;
   signal?: AbortSignal;
+  /** Run the interactive SSO login when the session is unusable, then retry once. */
+  ssoLogin?: { enabled: boolean } & RunAwsSsoLoginOptions;
 }
 
 /** Shared-config profile names: the AWS CLI accepts these characters. */
@@ -61,7 +68,12 @@ export function awsProfileConfigError(value: unknown): string | null {
 }
 
 export class AwsCredentialError extends Error {
-  constructor(message: string, readonly profile: string | undefined) {
+  constructor(
+    message: string,
+    readonly profile: string | undefined,
+    /** An interactive `aws sso login` for `profile` would fix this. */
+    readonly loginRequired = false,
+  ) {
     super(message);
     this.name = "AwsCredentialError";
   }
@@ -219,13 +231,13 @@ async function resolveSsoProfile(
   const cachePath = ssoCachePath(options.homeDir, options.env, sessionName ?? startUrl);
   let entry = readSsoCache(cachePath);
   if (!entry?.accessToken) {
-    throw new AwsCredentialError(`No AWS SSO session is cached for profile "${profile}" — ${loginHint}`, profile);
+    throw new AwsCredentialError(`No AWS SSO session is cached for profile "${profile}" — ${loginHint}`, profile, true);
   }
   const expiresAtMs = entry.expiresAt ? Date.parse(entry.expiresAt) : Number.NaN;
   if (!Number.isFinite(expiresAtMs) || expiresAtMs - SSO_TOKEN_SKEW_MS <= options.now()) {
     const refreshed = await refreshSsoToken(entry, ssoRegion, options.fetch, options.signal);
     if (!refreshed) {
-      throw new AwsCredentialError(`The AWS SSO session for profile "${profile}" has expired — ${loginHint}`, profile);
+      throw new AwsCredentialError(`The AWS SSO session for profile "${profile}" has expired — ${loginHint}`, profile, true);
     }
     entry = refreshed;
     writeSsoCache(cachePath, entry);
@@ -240,7 +252,7 @@ async function resolveSsoProfile(
     signal: timeoutSignal(options.signal),
   });
   if (response.status === 401 || response.status === 403) {
-    throw new AwsCredentialError(`AWS SSO rejected the cached session for profile "${profile}" (HTTP ${response.status}) — ${loginHint}`, profile);
+    throw new AwsCredentialError(`AWS SSO rejected the cached session for profile "${profile}" (HTTP ${response.status}) — ${loginHint}`, profile, true);
   }
   if (!response.ok) {
     throw new AwsCredentialError(`AWS SSO portal returned HTTP ${response.status} for profile "${profile}"`, profile);
@@ -331,7 +343,23 @@ export async function resolveAwsCredentials(options: ResolveAwsCredentialsOption
   cache.delete(key);
   const pending = inflight.get(key);
   if (pending) return pending;
-  const run = resolveUncached(options.profile, { env, homeDir, fetch: options.fetch ?? fetch, now, signal: options.signal })
+  const resolveOptions = { env, homeDir, fetch: options.fetch ?? fetch, now, signal: options.signal };
+  const ssoLogin = options.ssoLogin;
+  const run = resolveUncached(options.profile, resolveOptions)
+    .catch(async (error: unknown) => {
+      if (!ssoLogin?.enabled || !(error instanceof AwsCredentialError) || !error.loginRequired || !error.profile) throw error;
+      // The browser login is the operator's action; the request waits for it, and a caller that
+      // gives up (abort) stops waiting without killing the login — the next request finds the token.
+      await Promise.race([
+        runAwsSsoLogin(error.profile, { env, spawn: ssoLogin.spawn, timeoutMs: ssoLogin.timeoutMs, cliFallbackPaths: ssoLogin.cliFallbackPaths }).catch(loginError => {
+          throw new AwsCredentialError(`${error.message} (automatic login failed: ${loginError instanceof Error ? loginError.message : String(loginError)})`, error.profile, true);
+        }),
+        new Promise<never>((_, reject) => {
+          options.signal?.addEventListener("abort", () => reject(new AwsCredentialError(`${error.message} (the request was cancelled while the browser login was pending)`, error.profile, true)), { once: true });
+        }),
+      ]);
+      return resolveUncached(options.profile, resolveOptions);
+    })
     .then(creds => {
       // Static keys never expire on their own; re-read them each start, not each request.
       cache.set(key, creds);

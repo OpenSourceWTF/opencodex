@@ -140,6 +140,7 @@ export const REGISTRY_FIELD_MODEL_ID_ROLES = {
   location: NONE,
   region: NONE,
   awsProfile: NONE,
+  awsSsoAutoLogin: NONE,
 } satisfies Record<keyof ProviderRegistryEntry, RegistryFieldModelIdRole>;
 
 /**

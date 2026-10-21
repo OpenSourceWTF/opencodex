@@ -15,6 +15,8 @@ export interface ProviderPayloadForm {
   region?: string;
   /** Amazon Bedrock: AWS shared-config profile to sign with when no API key is given. */
   awsProfile?: string;
+  /** Amazon Bedrock: open the browser SSO login when the session is unusable (default on). */
+  awsSsoAutoLogin?: boolean;
 }
 
 export interface ProviderPostPreset {
@@ -88,6 +90,7 @@ export interface ProviderPayload {
   preserveResponsesReasoningContent?: boolean;
   region?: string;
   awsProfile?: string;
+  awsSsoAutoLogin?: boolean;
 }
 
 export function isBedrockAdapter(adapter: string | undefined): boolean {
@@ -118,6 +121,7 @@ export function buildProviderPayload(form: ProviderPayloadForm): ProviderPayload
   if (isBedrockAdapter(form.adapter)) {
     if (form.region?.trim()) provider.region = form.region.trim();
     if (form.awsProfile?.trim()) provider.awsProfile = form.awsProfile.trim();
+    if (form.awsSsoAutoLogin === false) provider.awsSsoAutoLogin = false;
   }
   if (form.allowPrivateNetwork) {
     provider.allowPrivateNetwork = true;

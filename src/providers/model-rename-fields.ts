@@ -151,6 +151,7 @@ export const PROVIDER_MODEL_RENAME_ROLES = {
   location: "none",
   region: "none",
   awsProfile: "none",
+  awsSsoAutoLogin: "none",
   mcpServers: "none",
   desktopExecutor: "none",
   unsafeAllowNativeLocalExec: "none",

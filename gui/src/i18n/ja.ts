@@ -1884,6 +1884,7 @@ export const ja: Record<TKey, string> = {
   "modal.bedrockProfile": "AWS プロファイル",
   "modal.bedrockProfilePlaceholder": "AWS_PROFILE または default",
   "modal.bedrockApiKey": "Bedrock API キー（任意）",
+  "modal.bedrockSsoAutoLogin": "AWS セッションの期限が切れたらブラウザの SSO ログインを自動で開く",
   "modal.bedrockAuthHint": "キーを空にすると、プロファイルの AWS 認証情報（静的キー、または `aws sso login --profile <name>` による IAM Identity Center セッション）でリクエストに署名します。claude-opus-5-5 のような Claude ID はリージョンの推論プロファイルに対応付けられ、global.anthropic.claude-sonnet-5-5 のような完全な Bedrock ID はそのまま送信されます。",
   "modal.defaultModelPlaceholder": "例: gpt-5.5",
   "modal.baseUrlPlaceholder": "https://...",
