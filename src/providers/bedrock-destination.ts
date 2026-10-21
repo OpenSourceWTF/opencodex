@@ -1,4 +1,5 @@
 import type { OcxProviderConfig } from "../types";
+import { listModelMetadata } from "../generated/model-metadata";
 
 /**
  * Amazon Bedrock destination resolution for the `bedrock` adapter.
@@ -117,11 +118,58 @@ export function isBedrockModelIdentifier(modelId: string): boolean {
   return /^arn:/i.test(modelId) || /(?:^|\.)anthropic\./i.test(modelId);
 }
 
+/**
+ * Bedrock's own Claude ids are not uniform: current generations are bare (`anthropic.claude-opus-5-5`),
+ * while older ones carry a date and a version (`anthropic.claude-haiku-4-5-20251001-v1:0`,
+ * `anthropic.claude-opus-4-6-v1`). The `amazon-bedrock` metadata bundle lists every served id, so
+ * the canonical-to-Bedrock base id is derived from it rather than guessed: strip the geography
+ * prefix and the `anthropic.` vendor segment, then the date and version to get the canonical key.
+ * When a canonical id has several dated rows, the latest date wins.
+ */
+const BEDROCK_CLAUDE_SUFFIX = /(?:-\d{8})?(?:-v\d+(?::\d+)?)?$/;
+
+function claudeBaseIdFromBedrockId(bedrockId: string): string | undefined {
+  const match = /(?:^|\.)anthropic\.(claude-.+)$/i.exec(bedrockId);
+  return match?.[1];
+}
+
+/** `claude-haiku-4-5-20251001-v1:0` -> `claude-haiku-4-5`; a bare id is unchanged. */
+export function canonicalClaudeKey(claudeId: string): string {
+  return claudeId.replace(BEDROCK_CLAUDE_SUFFIX, "");
+}
+
+let claudeBaseIds: Map<string, string> | undefined;
+
+function bedrockClaudeBaseIds(): Map<string, string> {
+  if (claudeBaseIds) return claudeBaseIds;
+  const out = new Map<string, string>();
+  for (const row of listModelMetadata("amazon-bedrock")) {
+    const base = claudeBaseIdFromBedrockId(row.id);
+    if (!base) continue;
+    const key = canonicalClaudeKey(base);
+    const current = out.get(key);
+    // A dated row beats a bare one only when no bare row exists; among dated rows the latest wins.
+    if (current === undefined || (current !== key && base !== key && base > current)) out.set(key, base);
+    if (base === key) out.set(key, base);
+  }
+  claudeBaseIds = out;
+  return out;
+}
+
+/** The Bedrock base id (`claude-haiku-4-5-20251001-v1:0`) for a canonical Claude id, else the id itself. */
+export function bedrockClaudeBaseId(canonicalId: string): string {
+  return bedrockClaudeBaseIds().get(canonicalClaudeKey(canonicalId)) ?? canonicalId;
+}
+
 /** The id placed in the request path: canonical `claude-*` ids map onto the region's profile. */
 export function bedrockWireModelId(modelId: string, region: string): string {
   if (isBedrockModelIdentifier(modelId)) return modelId;
-  if (/^claude-/i.test(modelId)) return `${bedrockInferenceProfilePrefix(region)}anthropic.${modelId}`;
+  if (/^claude-/i.test(modelId)) return `${bedrockInferenceProfilePrefix(region)}anthropic.${bedrockClaudeBaseId(modelId)}`;
   return modelId;
+}
+
+export function __resetBedrockClaudeBaseIdsForTests(): void {
+  claudeBaseIds = undefined;
 }
 
 /**

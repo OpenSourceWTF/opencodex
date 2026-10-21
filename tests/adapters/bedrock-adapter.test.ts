@@ -89,9 +89,16 @@ describe("bedrock destination arithmetic", () => {
     expect(bedrockInferenceProfilePrefix("sa-east-1")).toBe("");
   });
 
-  test("canonical ids map onto the profile; Bedrock ids and ARNs pass through", () => {
+  test("canonical ids map onto the profile with Bedrock's own suffixes; Bedrock ids and ARNs pass through", () => {
     expect(bedrockWireModelId("claude-opus-5-5", "us-east-1")).toBe("us.anthropic.claude-opus-5-5");
-    expect(bedrockWireModelId("claude-haiku-4-5", "sa-east-1")).toBe("anthropic.claude-haiku-4-5");
+    expect(bedrockWireModelId("claude-fable-5-1", "us-east-1")).toBe("us.anthropic.claude-fable-5-1");
+    // Older generations are served under dated/versioned ids; the metadata bundle supplies them.
+    expect(bedrockWireModelId("claude-haiku-4-5", "us-east-1")).toBe("us.anthropic.claude-haiku-4-5-20251001-v1:0");
+    expect(bedrockWireModelId("claude-opus-4-6", "eu-central-1")).toBe("eu.anthropic.claude-opus-4-6-v1");
+    expect(bedrockWireModelId("claude-sonnet-4-5", "us-east-1")).toBe("us.anthropic.claude-sonnet-4-5-20250929-v1:0");
+    expect(bedrockWireModelId("claude-haiku-4-5", "sa-east-1")).toBe("anthropic.claude-haiku-4-5-20251001-v1:0");
+    // An id the bundle does not know is passed through under the vendor segment unchanged.
+    expect(bedrockWireModelId("claude-future-9", "us-east-1")).toBe("us.anthropic.claude-future-9");
     expect(bedrockWireModelId("global.anthropic.claude-sonnet-5-5", "us-east-1")).toBe("global.anthropic.claude-sonnet-5-5");
     expect(bedrockWireModelId("anthropic.claude-haiku-4-5-20251001-v1:0", "eu-west-1")).toBe("anthropic.claude-haiku-4-5-20251001-v1:0");
     const arn = "arn:aws:bedrock:us-east-1:123456789012:inference-profile/us.anthropic.claude-opus-5-5";
@@ -156,7 +163,8 @@ describe("bedrock adapter buildRequest", () => {
 
   test("a non-streaming request uses /invoke and asks for JSON", async () => {
     const req = await createBedrockAdapter(provider()).buildRequest(request("claude-haiku-4-5", false));
-    expect(req.url).toBe("https://bedrock-runtime.us-west-2.amazonaws.com/model/us.anthropic.claude-haiku-4-5/invoke");
+    expect(req.url).toBe("https://bedrock-runtime.us-west-2.amazonaws.com/model/us.anthropic.claude-haiku-4-5-20251001-v1%3A0/invoke");
+    expect(req.outboundModelId).toBe("us.anthropic.claude-haiku-4-5-20251001-v1:0");
     expect(req.headers["Accept"]).toBe("application/json");
   });
 

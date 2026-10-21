@@ -389,7 +389,10 @@ credentials are cached in memory until five minutes before they expire. `role_ar
 - Maps a canonical id such as `claude-opus-5-5` onto the region's cross-region inference profile
   (`us.anthropic.claude-opus-5-5` from a US region, `eu.` from Europe, `apac.`/`jp.`/`au.` from
   Asia-Pacific, `us-gov.` from GovCloud; an unknown geography sends the in-region
-  `anthropic.claude-opus-5-5`). A full Bedrock model id, inference-profile id
+  `anthropic.claude-opus-5-5`). Bedrock's own dated and versioned ids come from the
+  `amazon-bedrock` metadata bundle, so `claude-haiku-4-5` becomes
+  `us.anthropic.claude-haiku-4-5-20251001-v1:0` and `claude-opus-4-6` becomes
+  `...claude-opus-4-6-v1`. A full Bedrock model id, inference-profile id
   (`global.anthropic.claude-sonnet-5-5`) or ARN is sent verbatim, path-encoded.
 - Body: removes `model` and `stream` (the operation path selects streaming), adds
   `anthropic_version: "bedrock-2023-05-31"`, and moves any `anthropic-beta` header, including an
