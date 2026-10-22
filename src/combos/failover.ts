@@ -234,6 +234,12 @@ export function coolComboTarget(
     status?: number;
     code?: string | null;
     message?: string;
+    /**
+     * The target's provider is an account pool that cools each refused account itself. Its server
+     * Retry-After then describes one account, so the target keeps it only up to the local cap: a
+     * short anti-hammer pause, not a day-long blackout of the accounts that still answer.
+     */
+    poolOwnsAccountWaits?: boolean;
   },
 ): boolean {
   const now = options?.now ?? Date.now();
@@ -245,7 +251,7 @@ export function coolComboTarget(
   // are only fallbacks when upstream supplied neither usable value.
   const serverDelayMs = parseRetryAfterMs(options?.retryAfter, now, {
     preserveImmediate: true,
-    preserveServerDelay: true,
+    preserveServerDelay: options?.poolOwnsAccountWaits !== true,
   });
   const cooldownMs = serverDelayMs
     ?? parseResetCooldownMs(options?.resetAt, now)
@@ -262,7 +268,8 @@ export function coolComboTarget(
         message: options?.message,
       }) ? COMBO_REQUEST_RATE_COOLDOWN_MS : DEFAULT_COOLDOWN_MS);
   targetCooldowns.set(cooldownMapKey(comboId, target), {
-    // Local fallbacks are capped at ten minutes; explicit server delays at one day.
+    // Local fallbacks are capped at ten minutes; explicit server delays at one day, or at ten
+    // minutes for a pooled target.
     cooldownUntil: now + (serverDelayMs ?? Math.min(Math.max(cooldownMs, 1), MAX_COOLDOWN_MS)),
     status: options?.status,
   });

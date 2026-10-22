@@ -58,13 +58,18 @@ import { baseProviderLabel, poolAccountProviderLabel } from "../../providers/lab
 import { getAccountSet } from "../../oauth/store";
 import { anthropicRefusalCredentialIsCurrent } from "../../oauth/anthropic-account-refusal";
 import { configuredAnthropicInstance } from "../../providers/anthropic-instance";
+import { anthropicModelQuotaFor } from "../../oauth/anthropic-model-quota";
 import { isAnthropicBillingFailure } from "../../providers/anthropic-billing-refusal";
 import {
   anthropicRoutingFor,
   formatAnthropicProviderForLog,
 } from "../../oauth/anthropic-routing";
 import { codexAccountLogLabel, oauthAccountLogLabel } from "../../codex/account-label";
-import { isGenericFailoverProvider, rotateGenericOAuthAccountOn429 } from "../../oauth/generic-account-failover";
+import {
+  isGenericFailoverProvider,
+  isGenericOAuthFailoverEnabled,
+  rotateGenericOAuthAccountOn429,
+} from "../../oauth/generic-account-failover";
 import { codexQuotaScopeForModel, getCodexQuotaHealthSnapshot } from "../../codex/routing";
 import { isCanonicalOpenAiForwardProvider } from "../../providers/openai-tiers";
 import type { AgentTaskRecoveryFailureReason } from "./agent-task-recovery";
@@ -124,13 +129,25 @@ import { clientWireOf } from "../inference/client-wire";
  */
 export const COMBO_TARGET_BASE_SENDS = CODEX_TEXT_GUARDED_BUDGET_POLICY.baseSendAllowance;
 
+/**
+ * Names the pool account a failure came from, when the pool already holds that account's wait.
+ * An Anthropic family (per-model) refusal holds the account out of this model only and records
+ * no account cooldown, so it names the account only while another account is eligible for this
+ * model. When none is, the target cools (the anti-hammer guard).
+ */
 function cooledPoolAccountLabel(config: OcxConfig, providerName: string, modelId: string, label: string | undefined): string | undefined {
   if (!label) return undefined;
   const instance = configuredAnthropicInstance(config, providerName);
   if (instance && config.providers[providerName]?.authMode === "oauth") {
     const matches = getAccountSet(instance)?.accounts.filter(account =>
       formatAnthropicProviderForLog(instance, account.id) === label) ?? [];
-    return matches.length === 1 && anthropicRoutingFor(instance).getAnthropicAccountHealthSnapshot(matches[0]!.id) ? label : undefined;
+    if (matches.length !== 1) return undefined;
+    const routing = anthropicRoutingFor(instance);
+    const now = Date.now();
+    return routing.getAnthropicAccountHealthSnapshot(matches[0]!.id, now)
+      || anthropicModelQuotaFor(instance).anthropicFamilyRejected(matches[0]!.id, modelId, now)
+      && routing.getEligibleAnthropicAccounts(now, modelId).length > 0
+      ? label : undefined;
   }
   const provider = config.providers[providerName];
   if (!provider || !isCanonicalOpenAiForwardProvider(provider)) return undefined;
@@ -186,6 +203,26 @@ function creditRefusedAnthropicAccountLabel(
 }
 
 /**
+ * Whether an account pool holds the per-account waits behind this target: the Anthropic OAuth
+ * pool once it records account cooldowns (pool enabled or two usable accounts), the Codex pool
+ * with stored accounts, and a generic OAuth pool with failover enabled. A server Retry-After from
+ * such a target then parks the combo target only for the local cooldown cap, because the pool
+ * enforces the long wait per account. A lone account that no pool cools is not one, and keeps the
+ * full server delay.
+ */
+function comboTargetPoolOwnsAccountWaits(config: OcxConfig, providerName: string): boolean {
+  const provider = config.providers[providerName];
+  if (!provider) return false;
+  const instance = configuredAnthropicInstance(config, providerName);
+  if (instance && provider.authMode === "oauth") {
+    const routing = anthropicRoutingFor(instance);
+    return routing.isAnthropicAccountPoolEnabled(config) || routing.hasAnthropicFailoverQuorum();
+  }
+  if (isCanonicalOpenAiForwardProvider(provider)) return (config.codexAccounts ?? []).length > 0;
+  return isGenericOAuthFailoverEnabled(config, providerName);
+}
+
+/**
  * True only for the Anthropic OAuth pool's OWN "all accounts cooled" 429. Its Retry-After is the
  * earliest per-account cooldown restated (`getAnthropicPoolRetryAfterSeconds`), which the pool
  * keeps enforcing locally, so it must not also park the combo target: an account added, resumed or
@@ -195,7 +232,10 @@ function creditRefusedAnthropicAccountLabel(
  * Provenance, not just current state: the target must be the OAuth pool, no account may have been
  * identified for the failure, and the pool must be holding the wait right now. An upstream 429 on
  * a pool account always cools and names that account, and an API-key provider never qualifies, so
- * a genuine upstream Retry-After still parks the target in full.
+ * a genuine upstream Retry-After still parks the target (up to the pooled cap).
+ *
+ * `model` scopes the check to the accounts eligible for that model: a pool whose every account
+ * is out of the model's family window refuses locally for that model while it still serves others.
  */
 export function isAnthropicPoolLocalRefusal(
   config: OcxConfig,
@@ -203,14 +243,15 @@ export function isAnthropicPoolLocalRefusal(
   status: number,
   failedAccount: string | undefined,
   now = Date.now(),
+  model?: string,
 ): boolean {
   const instance = configuredAnthropicInstance(config, providerName);
   return instance !== undefined
     && config.providers[providerName]?.authMode === "oauth"
     && status === 429
     && failedAccount === undefined
-    && anthropicRoutingFor(instance).getEligibleAnthropicAccounts(now).length === 0
-    && anthropicRoutingFor(instance).getAnthropicPoolRetryAfterSeconds(now) !== null;
+    && anthropicRoutingFor(instance).getEligibleAnthropicAccounts(now, model).length === 0
+    && anthropicRoutingFor(instance).getAnthropicPoolRetryAfterSeconds(now, null, model) !== null;
 }
 
 /**
@@ -1246,10 +1287,11 @@ export async function executeComboResponses(
     // The target still cools on the pool's own refusal (the anti-hammer guard), but for the local
     // fallback rather than the pool's restated per-account Retry-After.
     const poolLocalRefusal = isAnthropicPoolLocalRefusal(
-      config, pick.target.provider, failure.response.status, failedAccount, failureNow,
+      config, pick.target.provider, failure.response.status, failedAccount, failureNow, pick.target.model,
     );
     const nextPick = advanceComboAfterFailure(config, pick, {
       retryAfter: poolLocalRefusal ? undefined : failure.retryAfter,
+      poolOwnsAccountWaits: comboTargetPoolOwnsAccountWaits(config, pick.target.provider),
       resetAt: failure.resetAt,
       cooldownMs: combo.cooldownMs,
       now: failureNow,
