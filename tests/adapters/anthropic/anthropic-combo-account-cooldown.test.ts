@@ -17,12 +17,15 @@ import {
   clearAnthropicAccountPoolState,
   forgetAnthropicFailoverQuorum,
   getAnthropicAccountHealthSnapshot,
+  getEligibleAnthropicAccounts,
 } from "../../../src/oauth/anthropic-routing";
+import { anthropicFamilyRejected } from "../../../src/oauth/anthropic-model-quota";
 import { clearGenericFailoverHealth } from "../../../src/oauth/generic-account-failover";
 import { getAccountSet, saveCredential, setActiveAccount } from "../../../src/oauth/store";
 import { clearAccountQuotaCache, resetProviderQuotaReconcileStateForTests } from "../../../src/providers/quota";
 import { clearResponseStateForTests, flushResponseState } from "../../../src/responses/state";
 import { handleResponses } from "../../../src/server/responses";
+import { isAnthropicPoolLocalRefusal } from "../../../src/server/responses/core-combo";
 import { createRequestExecutionBudget } from "../../../src/lib/request-execution-budget";
 import type { RequestExecutionBudget } from "../../../src/lib/request-execution-budget";
 import type { OcxConfig, OcxProviderConfig } from "../../../src/types";
@@ -238,9 +241,13 @@ test("every pool account spent still cools the combo target", async () => {
 test("a lone OAuth account without pool cooldown still cools the combo target", async () => {
   await seed(1);
   const config = configFor(spent, false);
+  const at = Date.now();
   expect((await post(config)).status).toBe(429);
   expect(isComboTargetInCooldown("pooled", TARGET)).toBe(true);
   expect(sentTokens).toHaveLength(1);
+  // No pool holds this account's wait, so the server Retry-After is the only thing that does: it
+  // keeps parking the target past the ten-minute pooled cap.
+  expect(isComboTargetInCooldown("pooled", TARGET, at + TEN_MINUTES_MS + 60_000)).toBe(true);
 });
 
 /** The pool's own credit-balance wording (`isAccountRefusal`), on a 402. */
@@ -315,3 +322,114 @@ test("a 402 consumed after re-login cannot cool the replacement credential in th
   expect(getAnthropicAccountHealthSnapshot(ids[0]!)).toBeNull();
   expect(getAnthropicAccountHealthSnapshot(ids[1]!)).toBeNull();
 }, 20_000);
+
+const TEN_MINUTES_MS = 10 * 60_000;
+const FABLE = "claude-fable-5-1";
+const FABLE_TARGET = { provider: "anthropic", model: FABLE };
+
+/**
+ * A Fable-only weekly refusal (`7d_oi`): the account is spent for Fable but still has shared
+ * headroom, so the pool records a family exclusion, not an account cooldown.
+ */
+function familySpent(): Response {
+  return Response.json(
+    { type: "error", error: { type: "rate_limit_error", message: "synthetic Fable weekly limit reached" } },
+    { status: 429, headers: {
+      "anthropic-ratelimit-unified-5h-status": "allowed",
+      "anthropic-ratelimit-unified-7d-status": "allowed",
+      "anthropic-ratelimit-unified-7d_oi-status": "rejected",
+      "retry-after": SPENT_WEEK_RETRY_AFTER,
+    } },
+  );
+}
+
+/** The 2026-10-22 shape: the Fable pool first, a metered key provider as the last resort. */
+function fableComboConfig(reply: () => Response, meteredSends: string[], poolEnabled = true): OcxConfig {
+  const config = configFor(reply, poolEnabled);
+  config.providers.anthropic!.models = [FABLE];
+  config.providers.metered = {
+    adapter: "anthropic", baseUrl: "https://metered.test", authMode: "key", apiKey: "synthetic-metered-key",
+    models: [FABLE], fetch: (async () => { meteredSends.push("metered"); return answered(); }) as typeof fetch,
+  } as OcxProviderConfig;
+  config.combos = { pooled: { strategy: "failover", targets: [FABLE_TARGET, { provider: "metered", model: FABLE, lastResort: true }] } };
+  return config;
+}
+
+test("a Fable family-quota 429 spares the target while another account still has Fable headroom", async () => {
+  const ids = await seed(5);
+  let refuse = true;
+  const meteredSends: string[] = [];
+  const config = fableComboConfig(() => refuse ? familySpent() : answered(), meteredSends);
+
+  expect((await post(config)).status).toBe(200);
+  expect(meteredSends).toHaveLength(1);
+  // The pool holds every refused account out of Fable only; none of them carries a cooldown.
+  const spentIds = ids.filter(id => anthropicFamilyRejected(id, FABLE));
+  expect(spentIds).toHaveLength(sentTokens.length);
+  expect(spentIds.length).toBeLessThan(ids.length);
+  expect(ids.every(id => getAnthropicAccountHealthSnapshot(id) === null)).toBe(true);
+  expect(getEligibleAnthropicAccounts(Date.now(), FABLE).length).toBeGreaterThan(0);
+  expect(isComboTargetInCooldown("pooled", FABLE_TARGET)).toBe(false);
+
+  // The next request goes back to the pool and leaves through the account with Fable headroom.
+  refuse = false;
+  sentTokens = [];
+  expect((await post(config)).status).toBe(200);
+  expect(meteredSends).toHaveLength(1);
+  expect(sentTokens).toHaveLength(1);
+  const servedIndex = ids.findIndex((_, index) => sentTokens[0] === `Bearer ${credential(index).access}`);
+  expect(spentIds).not.toContain(ids[servedIndex]!);
+}, 20_000);
+
+test("a Fable family-quota 429 with no account left for Fable cools the target for minutes only", async () => {
+  const ids = await seed(2);
+  const meteredSends: string[] = [];
+  const config = fableComboConfig(familySpent, meteredSends);
+
+  const at = Date.now();
+  expect((await post(config)).status).toBe(200);
+  expect(meteredSends).toHaveLength(1);
+  expect(ids.every(id => anthropicFamilyRejected(id, FABLE))).toBe(true);
+  expect(getEligibleAnthropicAccounts(Date.now(), FABLE)).toEqual([]);
+  // Nothing in the pool can serve Fable, so the anti-hammer guard still cools the target, but a
+  // pool owns these waits: the 88.5h Retry-After parks it for the local cap, not a day.
+  expect(isComboTargetInCooldown("pooled", FABLE_TARGET)).toBe(true);
+  expect(isComboTargetInCooldown("pooled", FABLE_TARGET, at + TEN_MINUTES_MS + 1_000)).toBe(false);
+  // The pool's own refusal for Fable is local even though both accounts still serve other models.
+  expect(isAnthropicPoolLocalRefusal(config, "anthropic", 429, undefined, Date.now(), FABLE)).toBe(true);
+  expect(isAnthropicPoolLocalRefusal(config, "anthropic", 429, undefined, Date.now(), MODEL)).toBe(false);
+}, 20_000);
+
+/** A request-rate 429: the pool pauses the account's admission, it records no cooldown. */
+function throttled(): Response {
+  return Response.json(
+    { type: "error", error: { type: "rate_limit_error", message: "synthetic request rate limit" } },
+    { status: 429, headers: { "retry-after": SPENT_WEEK_RETRY_AFTER } },
+  );
+}
+
+test("a pooled target's unattributed upstream Retry-After parks the target for ten minutes at most", async () => {
+  await seed(3);
+  const meteredSends: string[] = [];
+  const config = fableComboConfig(throttled, meteredSends);
+
+  const at = Date.now();
+  expect((await post(config)).status).toBe(200);
+  expect(meteredSends).toHaveLength(1);
+  expect(isComboTargetInCooldown("pooled", FABLE_TARGET)).toBe(true);
+  expect(isComboTargetInCooldown("pooled", FABLE_TARGET, at + TEN_MINUTES_MS + 1_000)).toBe(false);
+}, 20_000);
+
+test("a key provider's long Retry-After still parks the target past the pooled cap", async () => {
+  const meteredSends: string[] = [];
+  const config = fableComboConfig(answered, meteredSends);
+  (config.providers.metered as OcxProviderConfig & { fetch: typeof fetch }).fetch = (async () => { meteredSends.push("metered"); return spent(); }) as typeof fetch;
+  config.combos = { pooled: { strategy: "failover", targets: [{ provider: "metered", model: FABLE }] } };
+
+  const at = Date.now();
+  expect((await post(config)).status).toBe(429);
+  expect(meteredSends).toHaveLength(1);
+  const target = { provider: "metered", model: FABLE };
+  expect(isComboTargetInCooldown("pooled", target, at + TEN_MINUTES_MS + 60_000)).toBe(true);
+  expect(isComboTargetInCooldown("pooled", target, at + 24 * 60 * 60_000 + 1_000)).toBe(false);
+});

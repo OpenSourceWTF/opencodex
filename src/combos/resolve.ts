@@ -441,6 +441,8 @@ export function advanceComboAfterFailure(
     message?: string;
     /** Account-qualified provider label of the account this failure came from, when a pool resolved one. */
     failedAccount?: string;
+    /** The target's provider is an account pool that holds the per-account waits (see `coolComboTarget`). */
+    poolOwnsAccountWaits?: boolean;
   } = {},
 ): ComboPick | null {
   noteComboFailure(pick.comboId, pick.target, pick.writerGeneration);
@@ -454,7 +456,10 @@ export function advanceComboAfterFailure(
   // Only a pool-resolved account qualifies, and an unidentified account still cools the target --
   // including the pool's OWN "all accounts are cooled" 429, which refuses locally before it picks
   // one. That is what keeps this from trading a blackhole for a hammer: when nothing else is
-  // holding the target back, the target cooldown still does.
+  // holding the target back, the target cooldown still does. For a pooled target that cooldown
+  // keeps a server Retry-After only up to the local cap (`poolOwnsAccountWaits`): on 2026-10-22 a
+  // Fable-only 429 that named no cooled account parked anthropic/claude-fable-5-1 for 20.5h while
+  // two accounts still had Fable headroom.
   // A 402 credit refusal is the provider-scoped twin: the caller names an account only after the
   // pool has cooled it and still holds an eligible sibling.
   const accountScoped = options.failedAccount !== undefined

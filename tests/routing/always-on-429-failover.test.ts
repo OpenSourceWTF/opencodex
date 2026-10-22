@@ -228,13 +228,16 @@ describe("Anthropic reactive 429 failover without the pool flag", () => {
       }
     };
 
-    // Control: one account is still eligible, so this 429 is upstream speaking and parks in full.
+    // Control: one account is still eligible, so this 429 is upstream speaking and keeps its
+    // Retry-After -- bounded by the pooled cap, because two accounts make this a pool that holds
+    // each account's own wait.
     const ids = await seedAccounts(2);
     rotateAnthropicAccountOn429(config, ids[0]!, weekly);
     clearComboTargetCooldowns("waterfall");
     const controlAt = Date.now();
     expect((await run()).status).toBe(429);
-    expect(isComboTargetInCooldown("waterfall", target, controlAt + 10 * 60_000 + 1_000)).toBe(true);
+    expect(isComboTargetInCooldown("waterfall", target, controlAt + 10 * 60_000 - 1_000)).toBe(true);
+    expect(isComboTargetInCooldown("waterfall", target, controlAt + 10 * 60_000 + 1_000)).toBe(false);
 
     // Pool-held: every account cooled. The target still cools, but only for the local fallback.
     rotateAnthropicAccountOn429(config, ids[1]!, weekly);

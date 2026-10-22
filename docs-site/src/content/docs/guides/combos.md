@@ -636,8 +636,14 @@ five seconds. A valid immediate
 cooldown.
 
 For an Anthropic OAuth or Codex pool, a 429 tied to one account that the pool has cooled does
-not cool the whole combo target. Other accounts behind that target remain available. A 429 with
-no identified, cooled pool account still cools the target, as do provider-wide failures.
+not cool the whole combo target. Other accounts behind that target remain available. An Anthropic
+model-specific weekly refusal (for example the Fable weekly window) counts the same way while
+another account still has headroom for that model. A 429 with no identified, cooled pool account
+still cools the target, as do provider-wide failures. When the target is an account pool (an
+Anthropic OAuth provider with the pool enabled or two or more accounts, a Codex pool with added
+accounts, or a generic OAuth pool with two or more accounts), that target cooldown keeps an
+explicit `Retry-After` for at most 10 minutes, because the pool already holds each spent account
+out for its full wait.
 
 ### Last-resort targets
 
@@ -959,7 +965,8 @@ Codex reset headers also take precedence over `cooldownMs`.
 If neither upstream signal is usable, the configured `cooldownMs` applies, or the upstream fallback applies
 when it is unset (5 seconds for request-rate codes `1302`/`1305`, 10 minutes for a spent usage
 window or a credential/billing failure, otherwise 60 seconds). Explicit
-`Retry-After` delays are capped at 24 hours; the other cooldowns are capped at 10 minutes.
+`Retry-After` delays are capped at 24 hours, or at 10 minutes when the target is an account pool;
+the other cooldowns are capped at 10 minutes.
 
 ### Why was my alias rejected?
 
