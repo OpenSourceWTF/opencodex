@@ -381,6 +381,12 @@ export interface ProviderRegistryEntry {
   googleMode?: "ai-studio" | "vertex" | "cloud-code-assist";
   project?: string;
   location?: string;
+  /** Amazon Bedrock source region; the canonical runtime host follows it (`bedrock` adapter). */
+  region?: string;
+  /** AWS shared-config profile the `bedrock` adapter signs with when no API key is configured. */
+  awsProfile?: string;
+  /** Opt in to `aws sso login` in the host browser when the profile's SSO session is unusable (default off). */
+  awsSsoAutoLogin?: boolean;
 }
 
 export type ProviderConfigSeed = Pick<
@@ -393,5 +399,5 @@ export type ProviderConfigSeed = Pick<
   | "reasoningEfforts" | "modelReasoningEfforts" | "modelDefaultReasoningEfforts" | "reasoningEffortMap" | "modelReasoningEffortMap" | "reasoningWireFormat"
   | "noVisionModels" | "noReasoningModels" | "noTemperatureModels" | "noTopPModels" | "noStopModels" | "noPenaltyModels"
   | "autoToolChoiceOnlyModels" | "preserveReasoningContentModels" | "requiresReasoningPlaceholderModels" | "reasoningSplitModels" | "inlineThinkTagModels" | "reasoningDetailsModels" | "thinkingToggleModels" | "thinkingBudgetModels" | "escapeBuiltinToolNames" | "openaiChatEofTolerance" | "showThinkingSummary"
-  | "googleMode" | "project" | "location" | "headers"
+  | "googleMode" | "project" | "location" | "region" | "awsProfile" | "awsSsoAutoLogin" | "headers"
 >;

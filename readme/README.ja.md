@@ -317,7 +317,7 @@ OpenCodex はプロセスが保持する状態を以下のカテゴリで追跡�
   退避されません。
 - **観測バッファ 4 個**（トランスレーターのアキュムレーター、画像・OAuth・Grok の tail）は処理中の
   バイト圧力を監視するだけで、退避はしません。
-- **state-store の登録 31 個**が期限切れの掃除（60 秒間隔）と config 世代の reconciliation を担い、
+- **state-store の登録 32 個**が期限切れの掃除（60 秒間隔）と config 世代の reconciliation を担い、
   古いプロバイダー／アカウントのキーを取り除きます。
 - **パスとフィンガープリントのメモ**（ワークスペースのメタデータ、hardened identity、インストール
   salt、mode-hint の capability）は挿入順の LRU 上限（8〜128 件）を使います。
@@ -367,7 +367,7 @@ JEV Combo は、キー不要の Ollama `tev1` のようなセルフホストの�
 ## プロバイダーとアダプター
 
 <!-- sponsors:main-first-mention -->
-OpenAI（ChatGPT ログインまたは API キー）、Anthropic、Google Gemini、xAI、Kimi、Azure OpenAI、Ollama
+OpenAI（ChatGPT ログインまたは API キー）、Anthropic、Amazon Bedrock (Claude)、Google Gemini、xAI、Kimi、Azure OpenAI、Ollama
 （ローカル + Cloud）、Cursor（実験的）、そしてあらゆる OpenAI 互換エンドポイント。さらに DeepSeek、
 Groq、OpenRouter、OpenGateway、Together、Fireworks、Cerebras、Mistral、Hugging Face、NVIDIA NIM、MiniMax、
 Qwen Cloud、Qoder Global と CN（公式 PAT + CLI）、SiliconFlow などがあります。全一覧は `ocx init` か

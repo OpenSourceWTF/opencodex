@@ -328,7 +328,7 @@ OpenCodex отслеживает состояние, удерживаемое п
   хранилища native control replay: оно закреплено и не вытесняется.
 - **4 наблюдаемых буфера** (аккумуляторы транслятора, хвосты image/OAuth/Grok)
   мониторятся по байтовому давлению in-flight без вытеснения.
-- **31 регистрация state-store** выполняет sweeps истечения (интервал 60 с) и сверку
+- **32 регистрации state-store** выполняют sweeps истечения (интервал 60 с) и сверку
   поколений конфигурации, чтобы удалять устаревшие ключи провайдеров и аккаунтов.
 - **Мемо пути и отпечатков** (метаданные рабочей области, усиленные идентификаторы,
   соли установки, возможности mode-hint) используют LRU-потолки в порядке вставки
@@ -380,7 +380,7 @@ Combo JEV может вместо этого обращаться к самос�
 ## Провайдеры и адаптеры
 
 <!-- sponsors:main-first-mention -->
-OpenAI (вход ChatGPT или API-ключ), Anthropic, Google Gemini, xAI, Kimi, Azure OpenAI, Ollama
+OpenAI (вход ChatGPT или API-ключ), Anthropic, Amazon Bedrock (Claude), Google Gemini, xAI, Kimi, Azure OpenAI, Ollama
 (локально + Cloud), Cursor (экспериментально) и любой OpenAI-совместимый endpoint — плюс DeepSeek,
 Groq, OpenRouter, OpenGateway, Together, Fireworks, Cerebras, Mistral, Hugging Face, NVIDIA NIM, MiniMax,
 Qwen Cloud, Qoder Global и CN (официальный PAT + CLI), SiliconFlow и другие. Полный список: `ocx init` или

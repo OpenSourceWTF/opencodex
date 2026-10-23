@@ -175,6 +175,7 @@ export default function AddProviderModal({
         apiKeyTransport: undefined,
         defaultModel: p.defaultModel ?? "",
         allowPrivateNetwork: false,
+        ...(p.adapter === "bedrock" ? { region: p.region ?? "", awsProfile: "", awsSsoAutoLogin: false } : {}),
       },
     });
   };

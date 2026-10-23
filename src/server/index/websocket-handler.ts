@@ -91,6 +91,7 @@ import type { ServeOptionsContext } from "./serve-options";
 import type { RequestMetricsRecorder } from "../request-metrics";
 import { resolveInboundBodyLimitBytes } from "../request-decompress";
 import { responseToolOwnership } from "../responses/response-tool-ownership";
+import { runWithRequestAdmission } from "../../lib/request-admission-scope";
 
 /**
  * The WebSocket half of the Bun.serve options, split out of serve-options.ts to keep that file
@@ -341,7 +342,8 @@ export function createWebsocketHandler(
           });
           try {
             let terminalRecorder: ((status: ResponsesTerminalStatus, httpStatusOverride?: number) => void) | undefined;
-            const response = await handleResponses(req, config, logCtx, {
+            // Same admission scope an HTTP turn gets in runAdmittedHttpTurn (src/lib/request-admission-scope.ts).
+            const response = await runWithRequestAdmission(wsAdmission?.kind, isApiAuthRequired(config), () => handleResponses(req, config, logCtx, {
               ...(wsAdmission ? { admission: wsAdmission } : {}),
               forceEmptyResponseId: true,
               inboundTransport: "websocket",
@@ -354,7 +356,7 @@ export function createWebsocketHandler(
               setTerminalOutcomeRecorder: recorder => {
                 terminalRecorder = recorder;
               },
-            });
+            }));
             const observeLog = nativeControl?.relayActive
               ? createNativeSteeringLogObserver(logCtx, () => recordFirstOutput(logCtx, start))
               : (payload: string) => inspectResponseLogSsePayload(logCtx, payload);

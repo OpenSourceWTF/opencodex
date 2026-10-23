@@ -1,6 +1,7 @@
 import { createAnthropicAdapter } from "./anthropic";
 import { createDshAccountAdapter } from "./dsh-account";
 import { createAzureAdapter } from "./azure";
+import { createBedrockAdapter } from "./bedrock";
 import type { ProviderAdapter } from "./base";
 import { createClaudeCliAdapter } from "./claude-cli/adapter";
 import { withClinePassDeepSeekV4ToolReplayCompatibility } from "./cline-pass-deepseek-v4-tool-replay";
@@ -158,6 +159,13 @@ export const ADAPTER_REGISTRY = {
   "dsh-account": {
     contractParent: "anthropic",
     create: (provider: OcxProviderConfig, context: AdapterFactoryContext) => createDshAccountAdapter(provider, context),
+  },
+  bedrock: {
+    // Amazon Bedrock serves the Anthropic Messages wire; the body, thinking rules and event parser
+    // are the anthropic adapter's. The wrapper owns the regional URL, the body deltas Bedrock
+    // requires, bearer API-key auth and the eventstream-to-SSE re-encoding.
+    contractParent: "anthropic",
+    create: (provider: OcxProviderConfig, context: AdapterFactoryContext) => createBedrockAdapter(provider, context),
   },
 } as const satisfies Record<string, AdapterDefinition>;
 

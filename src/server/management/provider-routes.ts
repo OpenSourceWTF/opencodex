@@ -39,6 +39,7 @@ import {
   upsertOAuthProvider,
 } from "../../oauth";
 import { commitProviderPatch } from "./provider-patch-transaction";
+import { applyBedrockProviderPatchFields, bedrockProviderListFields } from "./provider-aws-fields";
 import { captureConfigTopLevelRollback } from "../../config/rebase-provenance";
 import { canonicalAutoReviewModelKey, mergeModelPinnedEfforts, modelPinnedEffortsConfigError, pinnedReasoningEffortConfigError } from "../../config/provider-validation";
 import { replaceProviderAccountSet } from "../../oauth/store";
@@ -409,6 +410,9 @@ function applyProviderPatchFields(
       return { error: "apiKeyTransport must be x-api-key, bearer, or empty to clear" };
     }
   }
+  const awsFields = applyBedrockProviderPatchFields(rawBody, next);
+  if ("error" in awsFields) return awsFields;
+  touched ||= awsFields.touched;
   if (Object.hasOwn(rawBody, "note")) {
     if (typeof rawBody.note !== "string") return { error: "note must be a string" };
     const note = rawBody.note.trim();
@@ -930,6 +934,7 @@ export async function handleProviderRoutes(ctx: ManagementContext): Promise<Resp
       upstreamWebsocket: p.upstreamWebsocket,
       authMode: p.authMode,
       apiKeyTransport: p.apiKeyTransport,
+      ...bedrockProviderListFields(p),
       disabled: p.disabled === true,
       codexAccountMode: providerCodexAccountMode(name, p),
       ...(name === "xai" ? { xaiResponsesOptInState: xaiResponsesOptInState(p) } : {}),

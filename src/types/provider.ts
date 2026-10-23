@@ -1121,6 +1121,28 @@ export interface OcxProviderConfig {
   /** Vertex AI location, e.g. "us-central1" or "global". API-key project endpoints default to "global"; ADC falls back to GOOGLE_CLOUD_LOCATION env. */
   location?: string;
   /**
+   * Amazon Bedrock source region for the `bedrock` adapter, e.g. "us-east-1". A canonical
+   * `bedrock-runtime.<region>.amazonaws.com` baseUrl is rebuilt for this region, and canonical
+   * `claude-*` ids are mapped onto its cross-region inference profile prefix. Falls back to the
+   * region embedded in the `baseUrl` host, then `AWS_REGION` / `AWS_DEFAULT_REGION`, then `us-east-1`.
+   */
+  region?: string;
+  /**
+   * AWS shared-config profile (`~/.aws/config`, `~/.aws/credentials`) the `bedrock` adapter resolves
+   * credentials from when no `apiKey` is set: static keys or an IAM Identity Center (SSO) session
+   * signed in with `aws sso login`. Omitted: `AWS_PROFILE`, then `default`; with neither set,
+   * `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` win. Requests are then AWS SigV4-signed.
+   */
+  awsProfile?: string;
+  /**
+   * `bedrock` adapter, opt-in (default off): when the profile's IAM Identity Center session is
+   * missing, expired beyond refresh, or rejected, run `aws sso login --profile=<awsProfile>` (opens
+   * the host's browser), wait for approval, and retry — the same recovery Claude Code's
+   * `awsAuthRefresh` performs. Only a loopback-admitted request starts it, and a failed login
+   * pauses further attempts for five minutes. Off: the request fails and names the command to run.
+   */
+  awsSsoAutoLogin?: boolean;
+  /**
    * Cursor adapter only: MCP servers opencodex starts/connects and exposes to the Cursor agent
    * as callable tools. Each entry is spawned (stdio `command`) or connected (`url`) lazily per
    * stream; their tools are advertised to the Cursor server and executed against the live server.

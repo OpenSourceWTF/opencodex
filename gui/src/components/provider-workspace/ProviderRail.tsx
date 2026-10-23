@@ -34,7 +34,9 @@ export function authModeLabel(item: WorkspaceItem, t: TFn): string {
     case "forward": return t("pws.auth.chatgptPassthrough");
     case "local": return t("modal.badge.local");
     case "key": return t("modal.badge.apiKey");
-    default: return item.authMode ?? (item.keyOptional ? t("pws.auth.noKey") : t("modal.badge.apiKey"));
+    default: return item.adapter === "bedrock"
+      ? t("modal.badge.awsCredentials")
+      : (item.authMode ?? (item.keyOptional ? t("pws.auth.noKey") : t("modal.badge.apiKey")));
   }
 }
 

@@ -33,6 +33,34 @@ Some adapters share another adapter's routed-tool semantics while retaining inde
   providers keep resolving to this adapter with their stored configuration, while new-provider
   discovery (presets, the init menu, the featured list, and key logins) excludes it and
   `provider add` warns before creating one.
+- `bedrock` inherits the `anthropic` contract. Amazon Bedrock serves the Anthropic Messages wire,
+  so `src/adapters/bedrock.ts` wraps `createAnthropicAdapter` for the body, the per-family thinking
+  and sampling rules and the SSE event parser, and owns only what Bedrock changes: the regional
+  `/model/{id}/invoke-with-response-stream` URL from `src/providers/bedrock-destination.ts`
+  (canonical `claude-*` ids map onto the region's inference-profile prefix; a full Bedrock id or
+  ARN passes through, and the canonical family is recovered from it so the contract rules still
+  apply), the body deltas (`anthropic_version`, `anthropic_beta` array, no `model`/`stream`/`speed`,
+  no cache `ttl`), auth (a Bedrock API key as bearer, else AWS SigV4 from `src/lib/aws-sigv4.ts`
+  with credentials resolved by `src/lib/aws-credentials.ts`: env keys, the `awsProfile` /
+  `AWS_PROFILE` / `default` shared-config profile, or an `aws sso login` session refreshed through
+  SSO-OIDC and exchanged at the SSO portal, cached in the `aws-credentials` state store; an
+  unusable session runs the fixed `aws sso login --profile=<name>` from `src/lib/aws-sso-login.ts`
+  and retries once only when `awsSsoAutoLogin` is `true` and the request is loopback-admitted per
+  `src/lib/request-admission-scope.ts`, with a five-minute backoff after a failed login; otherwise
+  the request fails with the command, and client-facing messages never name the profile or a
+  path), and the
+  `application/vnd.amazon.eventstream` body, which
+  is re-encoded as SSE and handed to the anthropic parser so one terminal event rule holds.
+  Smithy exception frames become the HTTP status the same failure carries pre-stream
+  (`throttlingException` -> 429), which is what combo failover and key rotation branch on.
+  `src/lib/destination-policy.ts` classifies a bedrock row after the same `{region}` substitution
+  and canonical-host rebuild, so the private-network policy and the write-time DNS check read the
+  host the adapter sends to, and an `http:` AWS host (`*.amazonaws.com`) is refused at write time
+  and at request time.
+  Coverage: `tests/adapters/bedrock-adapter.test.ts`, `tests/adapters/bedrock-sso-login-gate.test.ts`,
+  `tests/server/bedrock-sso-login-wiring.test.ts`,
+  `tests/providers/bedrock-provider.test.ts`, `tests/providers/bedrock-destination-policy.test.ts`,
+  `tests/lib/aws-sigv4.test.ts`, `tests/lib/aws-credentials.test.ts`, `tests/lib/aws-sso-login.test.ts`.
 - `claude-cli` inherits the `codebuddy` contract. Claude Code speaks the same stream-json
   protocol this repository already parses for CodeBuddy and Qoder, so the wire is inherited and the
   family module (`src/adapters/claude-cli/`) supplies only its own arguments and child environment.

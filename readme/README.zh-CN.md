@@ -306,7 +306,7 @@ OpenCodex 在下列类别中跟踪进程保留状态。每一类都有文档化�
   不会被逐出。
 - **4 个观测缓冲区**（翻译累加器、图片/OAuth/Grok 尾部）会监测飞行中的字节压力，
   但不做逐出。
-- **31 个状态存储注册** 负责过期扫描（60 秒间隔）和配置世代对账，从而移除过期的
+- **32 个状态存储注册** 负责过期扫描（60 秒间隔）和配置世代对账，从而移除过期的
   提供商/账户键。
 - **路径与指纹备忘**（工作区元数据、加固身份、安装盐、模式提示能力）使用按插入顺序的
   LRU 上限（8–128 条）。
@@ -351,7 +351,7 @@ JEV Combo 也可以改用自托管的决策模型，例如无需密钥的 Ollama
 ## 提供商与适配器
 
 <!-- sponsors:main-first-mention -->
-OpenAI（ChatGPT 登录或 API 密钥）、Anthropic、Google Gemini、xAI、Kimi、Azure OpenAI、Ollama
+OpenAI（ChatGPT 登录或 API 密钥）、Anthropic、Amazon Bedrock (Claude)、Google Gemini、xAI、Kimi、Azure OpenAI、Ollama
 （本地 + Cloud）、Cursor（实验性），以及每一个 OpenAI 兼容端点 —— 再加上 DeepSeek、
 Groq、OpenRouter、OpenGateway、Together、Fireworks、Cerebras、Mistral、Hugging Face、NVIDIA NIM、MiniMax、
 Qwen Cloud、Qoder Global 和 CN（官方 PAT + CLI）、SiliconFlow，以及更多。完整列表：`ocx init` 或

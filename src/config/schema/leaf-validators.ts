@@ -365,6 +365,10 @@ export const providerConfigSchema = z.object({
   supportsNativeCompactEndpoint: z.boolean().optional(),
   allowEncryptedV2AgentTasks: z.boolean().optional(),
   allowPrivateNetwork: z.boolean().optional(),
+  // bedrock adapter: opt-in browser `aws sso login` on the host. Degrades to "absent" (off), like
+  // `retryOnReset`, so a hand-edited "false" string neither arms the login nor sends the operator
+  // through invalid-config recovery; the management write boundary rejects it loudly.
+  awsSsoAutoLogin: z.boolean().optional().catch(undefined),
   // Per-provider egress (#2894): absent inherits the global proxy decision, "direct"/null
   // refuses it, and an http(s) or socks5 URL replaces it for this provider only.
   proxy: providerProxySchema.optional(),

@@ -11,6 +11,12 @@ export interface ProviderPayloadForm {
   defaultModel: string;
   allowPrivateNetwork?: boolean;
   preserveResponsesReasoningContent?: boolean;
+  /** Amazon Bedrock (`bedrock` adapter): AWS source region, e.g. `us-east-1`. */
+  region?: string;
+  /** Amazon Bedrock: AWS shared-config profile to sign with when no API key is given. */
+  awsProfile?: string;
+  /** Amazon Bedrock: opt in to the host browser SSO login when the session is unusable (default off). */
+  awsSsoAutoLogin?: boolean;
 }
 
 export interface ProviderPostPreset {
@@ -82,6 +88,13 @@ export interface ProviderPayload {
   codexAccountMode?: "pool" | "direct";
   allowPrivateNetwork?: boolean;
   preserveResponsesReasoningContent?: boolean;
+  region?: string;
+  awsProfile?: string;
+  awsSsoAutoLogin?: boolean;
+}
+
+export function isBedrockAdapter(adapter: string | undefined): boolean {
+  return adapter?.trim() === "bedrock";
 }
 
 export function buildProviderPayload(form: ProviderPayloadForm): ProviderPayload {
@@ -104,6 +117,12 @@ export function buildProviderPayload(form: ProviderPayloadForm): ProviderPayload
   }
   if (form.defaultModel.trim()) {
     provider.defaultModel = form.defaultModel.trim();
+  }
+  if (isBedrockAdapter(form.adapter)) {
+    if (form.region?.trim()) provider.region = form.region.trim();
+    if (form.awsProfile?.trim()) provider.awsProfile = form.awsProfile.trim();
+    // Opt-in only: an unticked box writes nothing, so the saved row keeps the default (off).
+    if (form.awsSsoAutoLogin === true) provider.awsSsoAutoLogin = true;
   }
   if (form.allowPrivateNetwork) {
     provider.allowPrivateNetwork = true;

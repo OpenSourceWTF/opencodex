@@ -145,6 +145,29 @@ read usage without validating pending accounts. Relay the dashboard recovery
 instruction to the user; do not mint a GUI session or call the provider directly
 to work around this boundary. This also applies when operating a headless host.
 
+### Amazon Bedrock browser SSO login
+
+`awsSsoAutoLogin` on a provider that uses the `bedrock` adapter (the `amazon-bedrock` preset)
+lets the proxy run `aws sso login` on the host when the AWS session has expired. That opens the
+browser and signs in to the user's AWS account through IAM Identity Center, so it spends the
+user's AWS identity. It is off by default, and only the user turns it on.
+
+- Do **not** set `awsSsoAutoLogin: true` on the user's behalf: not in `config.json`, not with
+  `ocx config set`, not through the management API, and not with the dashboard checkbox.
+- Do **not** run `aws sso login` yourself, and do not approve, complete, or pass on the browser
+  sign-in page, the verification URL, or the device code. The proxy writes the URL and code that
+  the AWS CLI prints to `<home>/service.log`; that is for the user, not for you.
+- When a request fails with "sign in on the proxy host with `aws sso login --profile <name>`",
+  relay that to the user. They run the command, or they decide to enable the option.
+
+The code holds the boundary as far as it can: [`src/adapters/bedrock.ts`](./src/adapters/bedrock.ts)
+starts the login only when the option is `true` and the request was admitted on loopback
+([`src/lib/request-admission-scope.ts`](./src/lib/request-admission-scope.ts)), so a remote
+API-key holder cannot open a browser on the host, and
+[`src/lib/aws-sso-login.ts`](./src/lib/aws-sso-login.ts) runs a fixed command and pauses
+automatic attempts for five minutes after one fails. Regression coverage:
+`tests/lib/aws-sso-login.test.ts`, `tests/adapters/bedrock-sso-login-gate.test.ts`.
+
 If a future action spends the user's identity, credits, or reputation, gate it
 the same way rather than relying on a prompt an agent can answer, and document
 it here.

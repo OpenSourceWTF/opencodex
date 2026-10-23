@@ -673,7 +673,7 @@ The account list marks Kiro accounts excluded from automatic selection with a re
 
 ## 3. API-key catalog
 
-opencodex ships 104 built-in presets: 84 key-based, 16 OAuth, three local, and one default
+opencodex ships 105 built-in presets: 85 key-based, 16 OAuth, three local, and one default
 ChatGPT-forward preset. The dashboard's **Add provider** picker opens a key provider's dashboard,
 validates the key, and stores it; validation is provider-specific. Notable entries:
 
@@ -717,6 +717,7 @@ region-pinned EU routes, is at [opper.ai/models](https://opper.ai/models). Opper
 | --- | --- |
 | **OpenAI (API key)** | `https://api.openai.com/v1` |
 | **Anthropic (API key)** | `https://api.anthropic.com` |
+| **Amazon Bedrock (Claude)** | `https://bedrock-runtime.<region>.amazonaws.com` |
 | **OpenRouter** | `https://openrouter.ai/api/v1` |
 | **Cline** | `https://api.cline.bot/api/v1` |
 | **ClinePass** | `https://api.cline.bot/api/v1` |
@@ -1454,6 +1455,64 @@ This preset still does not perform live model discovery. An existing custom prov
 with the same name keeps its configured destination and metadata.
 CLI key login also skips the undocumented `/models` probe and reports validation as
 unknown; successful key authentication is established by a subsequent inference request.
+
+### Amazon Bedrock (Claude)
+
+`amazon-bedrock` runs Claude on your AWS account, pay-as-you-go, through Bedrock's Anthropic
+Messages route. It is the natural last-resort target behind a Claude subscription pool: when every
+pooled account is cooled, a failover combo hops to Bedrock and the request keeps its Claude model.
+
+1. Sign in to AWS. With IAM Identity Center (SSO) that is `aws sso login --profile <name>`; the
+   proxy reuses that session (and refreshes it) so no key is needed. Alternatively create a
+   long-term key under **Amazon Bedrock > API keys**. Either way, make sure the Claude models you
+   want are enabled for the account in your region.
+2. Pick **Amazon Bedrock (Claude)** in the dashboard's Add provider picker (or
+   `ocx provider add amazon-bedrock`). The form has the AWS region, the AWS profile, and an optional
+   Bedrock API key. Leave the key empty to sign with the profile's credentials. Key validation
+   reports *unknown*: the runtime host has no `/models` endpoint to probe.
+3. Canonical Claude ids (`claude-opus-5-5`, `claude-sonnet-5-5`, ...) are mapped onto the region's
+   cross-region inference profile (`us.anthropic.claude-opus-5-5`, `eu.anthropic...`). To pin
+   another profile, use the full Bedrock id as the model, for example
+   `global.anthropic.claude-sonnet-5-5`.
+
+```json
+{
+  "providers": {
+    "amazon-bedrock": {
+      "adapter": "bedrock",
+      "baseUrl": "https://bedrock-runtime.us-east-1.amazonaws.com",
+      "authMode": "key",
+      "region": "us-east-1",
+      "awsProfile": "bedrock"
+    }
+  },
+  "combos": {
+    "opus": {
+      "alias": "claude-opus-5-5",
+      "strategy": "failover",
+      "allowMeteredTargets": true,
+      "targets": [
+        { "provider": "anthropic", "model": "claude-opus-5-5" },
+        { "provider": "amazon-bedrock", "model": "claude-opus-5-5", "metered": true, "lastResort": true }
+      ]
+    }
+  }
+}
+```
+
+With no key, requests are AWS SigV4-signed from the profile's credentials (`awsProfile`, else
+`AWS_PROFILE`, else `default`; static keys or an SSO session). When the SSO session has expired,
+the request fails and tells you to run `aws sso login --profile <name>` on the proxy host. To have
+the proxy open that browser login itself and continue once you approve it, tick "Open the browser
+SSO login automatically" in the provider form (`awsSsoAutoLogin: true`). It is off by default and
+runs only for requests admitted on loopback (a loopback bind, or a hub's loopback listener). A
+request admitted with an opencodex API key, as every request is in LAN mode and every hub client
+is, gets the error instead and never opens a browser on the host. After a login that fails or times out,
+automatic attempts pause for five minutes. On a host without a usable browser, the sign-in URL the
+AWS CLI prints is written to the proxy's service log.
+`role_arn` chaining and `credential_process` are not supported. Bedrock has no fast mode, no service tiers and no Anthropic server-side web search; prompt caching
+uses the five-minute breakpoint. Pricing and context windows come from the `amazon-bedrock`
+metadata bundle. See [Combos](/guides/combos/) for the failover rules and the metered-target consent.
 
 ### Multiple API keys
 

@@ -321,7 +321,7 @@ OpenCodex, süreçte tutulan durumu aşağıdaki kategorilerde izler. Her birini
   sabitlenmiştir ve hiç tahliye edilmez.
 - **4 gözlenen arabellek** (çevirici biriktiricileri, görsel/OAuth/Grok kuyrukları) tahliye edilmeden,
   yalnızca uçuştaki bayt baskısı için izlenir.
-- **31 state-store kaydı**, süre dolumu taramalarını (60 sn aralık) ve yapılandırma kuşağı uzlaştırmasını
+- **32 state-store kaydı**, süre dolumu taramalarını (60 sn aralık) ve yapılandırma kuşağı uzlaştırmasını
   yürüterek eski sağlayıcı/hesap anahtarlarını kaldırır.
 - **Yol ve parmak izi notları** (çalışma alanı meta verileri, sağlamlaştırılmış kimlikler, kurulum
   tuzları, mod ipucu yetenekleri) ekleme sıralı LRU sınırları kullanır (8–128 girdi).
@@ -372,7 +372,7 @@ gönderilmez. Ayrıntılar: [kendi barındırılan karar modeli](https://opencod
 ## Sağlayıcılar ve adaptörler
 
 <!-- sponsors:main-first-mention -->
-OpenAI (ChatGPT girişi ya da API anahtarı), Anthropic, Google Gemini, xAI, Kimi, Azure OpenAI, Ollama
+OpenAI (ChatGPT girişi ya da API anahtarı), Anthropic, Amazon Bedrock (Claude), Google Gemini, xAI, Kimi, Azure OpenAI, Ollama
 (yerel + Cloud), Cursor (deneysel) ve her OpenAI uyumlu uç nokta — ayrıca DeepSeek, Groq, OpenRouter, OpenGateway,
 Together, Fireworks, Cerebras, Mistral, Hugging Face, NVIDIA NIM, MiniMax, Qwen Cloud, Qoder Global ve CN
 (resmî PAT + CLI), SiliconFlow ve daha fazlası. Tam liste: `ocx init` ya da

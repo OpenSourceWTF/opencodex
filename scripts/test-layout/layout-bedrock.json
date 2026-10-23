@@ -1,0 +1,10 @@
+{
+  "bedrock-adapter.test.ts": "adapters",
+  "bedrock-sso-login-gate.test.ts": "adapters",
+  "bedrock-provider.test.ts": "providers",
+  "bedrock-destination-policy.test.ts": "providers",
+  "aws-sigv4.test.ts": "lib",
+  "aws-credentials.test.ts": "lib",
+  "aws-sso-login.test.ts": "lib",
+  "bedrock-sso-login-wiring.test.ts": "server"
+}

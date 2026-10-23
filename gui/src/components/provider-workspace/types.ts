@@ -125,6 +125,11 @@ export type ProviderUpdatePatch = {
   defaultModel?: string;
   apiKey?: string;
   apiKeyTransport?: "x-api-key" | "bearer" | "";
+  /** Amazon Bedrock fields; an empty string clears the saved value. */
+  region?: string;
+  awsProfile?: string;
+  /** `true` opts in to the host browser SSO login; `null` clears it (back to the default: off). */
+  awsSsoAutoLogin?: boolean | null;
   authMode?: string;
   note?: string;
   disabled?: boolean;

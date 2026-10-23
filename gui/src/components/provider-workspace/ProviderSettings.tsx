@@ -17,7 +17,7 @@ import { startVisibilityPoll } from "../../visibility-poll";
 import { useT } from "../../i18n/shared";
 import { IconLock } from "../../icons";
 import { isCatalogProviderId } from "../../provider-icons";
-import { openAiAccountProviderState } from "../../provider-payload";
+import { isBedrockAdapter, openAiAccountProviderState } from "../../provider-payload";
 import { canConfigureResponsesReasoningReplay } from "../../responses-reasoning-replay";
 import { ResponsesReasoningReplayControl } from "../responses-reasoning-replay-control";
 import { providerSupportsLiveModelDiscovery } from "../../provider-workspace/catalog";
@@ -27,7 +27,7 @@ import { ProviderProtocolPanel } from "./ProviderProtocolPanel";
 import { ProviderKeyPacing, type KeyPacingDraft, type KeyPacingStatus } from "./ProviderKeyPacing";
 import type { WorkspaceItem, ProviderUpdatePatch, ProviderUpdateResult } from "./types";
 
-const ADAPTERS = ["openai-responses", "openai-chat", "anthropic", "google", "azure-openai", "cursor"] as const;
+const ADAPTERS = ["openai-responses", "openai-chat", "anthropic", "bedrock", "google", "azure-openai", "cursor"] as const;
 const EMPTY_MODELS: string[] = [];
 
 type ChoicesStatus = "idle" | "loading" | "ready" | "error";
@@ -87,6 +87,9 @@ export default function ProviderSettings({
   const [defaultModel, setDefaultModel] = useState(item.defaultModel ?? "");
   const [authMode, setAuthMode] = useState(initialAuth);
   const [apiKeyTransport, setApiKeyTransport] = useState(item.apiKeyTransport ?? "x-api-key");
+  const [region, setRegion] = useState(item.region ?? "");
+  const [awsProfile, setAwsProfile] = useState(item.awsProfile ?? "");
+  const [awsSsoAutoLogin, setAwsSsoAutoLogin] = useState(item.awsSsoAutoLogin === true);
   const [note, setNote] = useState(item.note ?? "");
   const [allowPrivateNetwork, setAllowPrivateNetwork] = useState(item.allowPrivateNetwork ?? false);
   const [preserveReasoningReplay, setPreserveReasoningReplay] = useState(item.preserveResponsesReasoningContent === true);
@@ -119,6 +122,9 @@ export default function ProviderSettings({
     setDefaultModel(item.defaultModel ?? "");
     setAuthMode(String(item.authMode ?? (item.keyOptional ? "local" : "key")));
     setApiKeyTransport(item.apiKeyTransport ?? "x-api-key");
+    setRegion(item.region ?? "");
+    setAwsProfile(item.awsProfile ?? "");
+    setAwsSsoAutoLogin(item.awsSsoAutoLogin === true);
     setNote(item.note ?? "");
     setAllowPrivateNetwork(item.allowPrivateNetwork ?? false);
     setPreserveReasoningReplay(item.preserveResponsesReasoningContent === true);
@@ -133,7 +139,7 @@ export default function ProviderSettings({
     setMsg(null);
     setModeMsg(null);
     queueMicrotask(() => setEndpointChoice(matchChoiceId(baseUrlChoices, item.baseUrl)));
-  }, [item.adapter, item.baseUrl, item.defaultModel, item.authMode, item.apiKeyTransport, item.keyOptional, item.note, item.allowPrivateNetwork, item.preserveResponsesReasoningContent, savedLiveModels, savedCursorHttpVersion, item.requestPacing, baseUrlChoices]);
+  }, [item.adapter, item.baseUrl, item.defaultModel, item.authMode, item.apiKeyTransport, item.region, item.awsProfile, item.awsSsoAutoLogin, item.keyOptional, item.note, item.allowPrivateNetwork, item.preserveResponsesReasoningContent, savedLiveModels, savedCursorHttpVersion, item.requestPacing, baseUrlChoices]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Account mode syncs on its own: a mode PATCH refresh must not reset an in-progress
@@ -212,6 +218,7 @@ export default function ProviderSettings({
     || defaultModel.trim() !== (item.defaultModel ?? "")
     || authMode !== String(item.authMode ?? (item.keyOptional ? "local" : "key"))
     || (adapter.trim() === "anthropic" && authMode === "key" && apiKeyTransport !== (item.apiKeyTransport ?? "x-api-key"))
+    || (isBedrockAdapter(adapter) && (region.trim() !== (item.region ?? "") || awsProfile.trim() !== (item.awsProfile ?? "") || awsSsoAutoLogin !== (item.awsSsoAutoLogin === true)))
     || note.trim() !== (item.note ?? "")
     || allowPrivateNetwork !== (item.allowPrivateNetwork ?? false)
     || liveModels !== savedLiveModels
@@ -288,6 +295,11 @@ export default function ProviderSettings({
         }
         if (supportsApiKeyTransport) patch.apiKeyTransport = apiKeyTransport;
         else if (item.apiKeyTransport !== undefined) patch.apiKeyTransport = "";
+        if (isBedrockAdapter(adapter)) {
+          patch.region = region.trim();
+          patch.awsProfile = awsProfile.trim();
+          patch.awsSsoAutoLogin = awsSsoAutoLogin ? true : null;
+        }
       }
       const res = await onUpdateProvider(item.name, patch);
       setMsg(res.ok ? { ok: true, text: t("pws.settingsSaved") } : { ok: false, text: res.error || t("prov.saveFailed") });
@@ -348,6 +360,9 @@ export default function ProviderSettings({
     setAdapter(item.adapter); setBaseUrl(item.baseUrl);
     setDefaultModel(item.defaultModel ?? ""); setAuthMode(initialAuth);
     setApiKeyTransport(item.apiKeyTransport ?? "x-api-key");
+    setRegion(item.region ?? "");
+    setAwsProfile(item.awsProfile ?? "");
+    setAwsSsoAutoLogin(item.awsSsoAutoLogin === true);
     setNote(item.note ?? ""); setAllowPrivateNetwork(item.allowPrivateNetwork ?? false); setLiveModels(savedLiveModels);
     setPreserveReasoningReplay(item.preserveResponsesReasoningContent === true);
     setCursorHttpVersion(savedCursorHttpVersion); setMsg(null);
@@ -507,6 +522,23 @@ export default function ProviderSettings({
             </span>
           )}
         </label>
+      )}
+      {isBedrockAdapter(adapter) && (
+        <>
+          <label className="pwi-settings-field">
+            <span className="pwi-settings-label">{t("modal.bedrockRegion")}</span>
+            <input className="input" data-bedrock-region="" value={region} onChange={e => setRegion(e.target.value)} placeholder="us-east-1" />
+          </label>
+          <label className="pwi-settings-field">
+            <span className="pwi-settings-label">{t("modal.bedrockProfile")}</span>
+            <input className="input" data-bedrock-profile="" value={awsProfile} onChange={e => setAwsProfile(e.target.value)} placeholder={t("modal.bedrockProfilePlaceholder")} />
+            <span className="pwi-settings-hint">{t("modal.bedrockAuthHint")}</span>
+          </label>
+          <label className="pwi-settings-field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <input type="checkbox" data-bedrock-sso-login="" checked={awsSsoAutoLogin} onChange={e => setAwsSsoAutoLogin(e.target.checked)} />
+            <span className="pwi-settings-label">{t("modal.bedrockSsoAutoLogin")}</span>
+          </label>
+        </>
       )}
       {supportsApiKeyTransport && (
         <label className="pwi-settings-field">

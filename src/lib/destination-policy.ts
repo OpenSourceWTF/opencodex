@@ -1,6 +1,7 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { getProviderRegistryEntry } from "../providers/registry";
+import { bedrockDestinationBaseUrl, bedrockTransportConfigError } from "../providers/bedrock-destination";
 import type { OcxProviderConfig } from "../types";
 
 const BLOCKED_METADATA_HOSTS = new Set([
@@ -340,10 +341,27 @@ export function providerAllowsPrivateNetwork(
   return provider.allowPrivateNetwork === true || registryAllowsPrivateNetwork(name);
 }
 
-export function providerDestinationConfigError(name: string, provider: Pick<OcxProviderConfig, "baseUrl" | "allowPrivateNetwork">): string | null {
-  const secureTransportError = providerSecureTransportConfigError(name, provider);
+type DestinationProvider = Pick<OcxProviderConfig, "baseUrl" | "allowPrivateNetwork">
+  & Partial<Pick<OcxProviderConfig, "adapter" | "region">>;
+
+/**
+ * The provider as its requests actually address it. The bedrock adapter fills a `{region}`
+ * placeholder and rebuilds a canonical runtime host for the configured region at request time,
+ * so its destination is classified after that substitution; checking the raw template let a
+ * `https://{region}.internal.example` host skip the DNS and private-network checks entirely.
+ * Every other adapter sends to its `baseUrl` as written.
+ */
+function addressedDestination<T extends DestinationProvider>(provider: T): T {
+  if (provider.adapter !== "bedrock") return provider;
+  const baseUrl = bedrockDestinationBaseUrl(provider);
+  return baseUrl === undefined ? provider : { ...provider, baseUrl };
+}
+
+export function providerDestinationConfigError(name: string, provider: DestinationProvider): string | null {
+  const secureTransportError = providerSecureTransportConfigError(name, provider)
+    ?? (provider.adapter === "bedrock" ? bedrockTransportConfigError(provider.baseUrl) : null);
   if (secureTransportError) return secureTransportError;
-  const assessment = assessDestination(provider.baseUrl);
+  const assessment = assessDestination(addressedDestination(provider).baseUrl);
   if (!assessment) return null;
   if (assessment.kind === "public" || assessment.kind === "hostname") return null;
   if (assessment.kind === "metadata") return "baseUrl targets a blocked metadata endpoint";
@@ -351,7 +369,7 @@ export function providerDestinationConfigError(name: string, provider: Pick<OcxP
   return `baseUrl points to a ${assessment.detail}; set allowPrivateNetwork:true only for intentionally local/self-hosted providers`;
 }
 
-export function assertProviderDestinationAllowed(name: string, provider: Pick<OcxProviderConfig, "baseUrl" | "allowPrivateNetwork">): void {
+export function assertProviderDestinationAllowed(name: string, provider: DestinationProvider): void {
   const error = providerDestinationConfigError(name, provider);
   if (error) throw new Error(`provider ${name} ${error}`);
 }
@@ -373,15 +391,14 @@ export function assertProviderDestinationAllowed(name: string, provider: Pick<Oc
  */
 export async function providerDestinationResolvedError(
   name: string,
-  provider: Pick<OcxProviderConfig, "baseUrl" | "allowPrivateNetwork">
-    & Partial<Pick<OcxProviderConfig, "adapter" | "authMode">>,
+  provider: DestinationProvider & Partial<Pick<OcxProviderConfig, "authMode">>,
   options?: { allowBenchmarkAddresses?: boolean },
 ): Promise<string | null> {
   const syncError = providerDestinationConfigError(name, provider);
   if (syncError) return syncError;
   let hostname: string;
   try {
-    hostname = normalizeHostname(new URL(provider.baseUrl.trim()).hostname);
+    hostname = normalizeHostname(new URL(addressedDestination(provider).baseUrl.trim()).hostname);
   } catch {
     return null;
   }

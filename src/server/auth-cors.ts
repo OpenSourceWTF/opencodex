@@ -46,6 +46,8 @@ import { openRouterRoutingConfigError } from "../providers/openrouter-routing";
 import { modelAutoCompactTokenLimitsConfigError } from "../providers/auto-compact-budget";
 import { vercelGatewayRoutingConfigError } from "../providers/vercel-gateway-routing";
 import { googleVertexLocationConfigError } from "../providers/google-vertex-location";
+import { bedrockRegionConfigError } from "../providers/bedrock-destination";
+import { awsProfileConfigError } from "../lib/aws-credentials";
 import { xaiResponsesOptInState } from "../providers/xai-responses-opt-in";
 import { authorizationCredential } from "../lib/authorization-scheme";
 
@@ -851,6 +853,18 @@ export function providerManagementConfigError(
     const locationError = googleVertexLocationConfigError(typed.location);
     if (locationError) return `provider ${name} ${locationError}`;
   }
+  if (typed.adapter === "bedrock" && typed.region !== undefined) {
+    const regionError = bedrockRegionConfigError(typed.region);
+    if (regionError) return `provider ${name} ${regionError}`;
+  }
+  if (typed.adapter === "bedrock" && typed.awsProfile !== undefined) {
+    const profileError = awsProfileConfigError(typed.awsProfile);
+    if (profileError) return `provider ${name} ${profileError}`;
+  }
+  // Opt-in that starts a browser login on the host: only a real boolean may arm it.
+  if (raw.awsSsoAutoLogin !== undefined && typeof raw.awsSsoAutoLogin !== "boolean") {
+    return `provider ${name} awsSsoAutoLogin must be a boolean`;
+  }
   const destinationError = providerDestinationConfigError(name, typed);
   if (destinationError) return `provider ${name} ${destinationError}`;
   for (const field of ["responsesPath", "chatCompletionsPath"] as const) {
@@ -1191,6 +1205,9 @@ const PROVIDER_CONFIG_FIELD_POLICY = {
   googleMode: "editor",
   project: "editor",
   location: "editor",
+  region: "editor",
+  awsProfile: "editor",
+  awsSsoAutoLogin: "editor",
   mcpServers: "redacted",
   desktopExecutor: "redacted",
   unsafeAllowNativeLocalExec: "editor",

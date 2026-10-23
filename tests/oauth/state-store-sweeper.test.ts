@@ -159,6 +159,7 @@ describe("state-store sweeper", () => {
       "codex-reauth",
       "oauth-reauth",
       "gcp-adc",
+      "aws-credentials",
       "config-ownership",
       "oauth-flow-state",
       "ocx-start-process-cache",

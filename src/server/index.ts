@@ -2,6 +2,7 @@ import { remoteWorkspaceEnabled } from "../remote-control/workspace-activation";
 import { scheduleDesktopCompatibilityStartup } from "./index/desktop-compatibility-startup";
 import { AuxiliaryListenerBindError } from "./ports";
 import { runAdmittedBodyWork } from "./inbound-body-admission";
+import { runWithRequestAdmission } from "../lib/request-admission-scope";
 import {
   buildWarmupCompletionFrames,
   buildWsErrorFrame,
@@ -520,7 +521,7 @@ function startServerWithSpendLedgerOwner(port: number | undefined, deps: StartSe
     if (workflow?.admitted) lease.attach(workflow.lease);
     let response: Response;
     try {
-      response = await runAdmittedBodyWork(req, policy, config.maxInboundBodyBytes, () => work(lease), refusalLog);
+      response = await runAdmittedBodyWork(req, policy, config.maxInboundBodyBytes, () => runWithRequestAdmission(refusalLog?.logCtx.admissionKind, isApiAuthRequired(config), () => work(lease)), refusalLog);
     } catch (error) {
       lease.release();
       throw error;
