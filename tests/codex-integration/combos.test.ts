@@ -227,6 +227,20 @@ describe("combo namespace primitives", () => {
     expect(tryPickComboModel(config, "unknown-bare")).toBeNull();
     expect(() => tryPickComboModel(config, "combo/missing")).toThrow(UnknownComboError);
   });
+
+  test("routes a Bedrock Claude id through the combo aliased to its canonical id", () => {
+    const config = baseConfig({
+      combos: {
+        fable: { targets: [{ provider: "b", model: "claude-fable-5-1" }], alias: "claude-fable-5-1" },
+      },
+    });
+    expect(resolveComboId(config, "us.anthropic.claude-fable-5-1")).toBe("fable");
+    expect(resolveComboId(config, "anthropic.claude-fable-5-1")).toBe("fable");
+    expect(tryPickComboModel(config, "eu.anthropic.claude-fable-5-1")?.comboId).toBe("fable");
+    // Only a configured alias qualifies; no alias means no combo, Bedrock-shaped or not.
+    expect(resolveComboId(config, "us.anthropic.claude-opus-5-5")).toBeNull();
+    expect(resolveComboId(config, "arn:aws:bedrock:us-east-1::foundation-model/x")).toBeNull();
+  });
 });
 
 describe("combo request cloning", () => {

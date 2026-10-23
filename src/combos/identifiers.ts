@@ -1,4 +1,5 @@
 import { SUPPORTED_NATIVE_OPENAI_SLUGS } from "../codex/catalog/native-models";
+import { canonicalClaudeModelId, isBedrockModelIdentifier } from "../providers/bedrock-destination";
 import type { OcxComboConfig, OcxComboTarget, OcxConfig } from "../types";
 
 export const COMBO_NAMESPACE = "combo";
@@ -66,6 +67,9 @@ export function comboDisabledModelSelectors(
 /**
  * Resolve a client-requested model id to a combo config key. The canonical `combo/<id>`
  * form wins first (back-compat); otherwise an exact alias match across configured combos.
+ * A Bedrock Claude id (`us.anthropic.claude-fable-5-1`, as Claude Code saves in Bedrock mode)
+ * also matches the alias of its canonical Claude id, so it takes the combo's failover instead
+ * of a bare default-provider route.
  */
 export function resolveComboId(
   config: { combos?: Record<string, OcxComboConfig> },
@@ -75,12 +79,19 @@ export function resolveComboId(
   if (direct) return direct;
   const combos = config.combos;
   if (!combos) return null;
-  for (const [id, raw] of Object.entries(combos)) {
-    if (!raw || typeof raw !== "object") continue;
-    const alias = typeof raw.alias === "string" ? raw.alias.trim() : "";
-    if (alias && alias === modelId) return id;
-  }
-  return null;
+  const byAlias = (wanted: string): string | null => {
+    for (const [id, raw] of Object.entries(combos)) {
+      if (!raw || typeof raw !== "object") continue;
+      const alias = typeof raw.alias === "string" ? raw.alias.trim() : "";
+      if (alias && alias === wanted) return id;
+    }
+    return null;
+  };
+  const exact = byAlias(modelId);
+  if (exact) return exact;
+  if (!isBedrockModelIdentifier(modelId)) return null;
+  const canonical = canonicalClaudeModelId(modelId);
+  return canonical === modelId ? null : byAlias(canonical);
 }
 
 
